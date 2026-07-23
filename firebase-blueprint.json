@@ -1,0 +1,110 @@
+{
+  "entities": {
+    "Department": {
+      "title": "Department",
+      "description": "Organizational unit within the company",
+      "type": "object",
+      "properties": {
+        "name": { "type": "string", "description": "Name of the department" },
+        "signatureName": { "type": "string", "description": "Name for report signature" },
+        "signatureTitle": { "type": "string", "description": "Title for report signature" }
+      },
+      "required": ["name"]
+    },
+    "Plan": {
+      "title": "Master Plan Item",
+      "description": "Core planning item with unique ID (e.g. PL1.A.1)",
+      "type": "object",
+      "properties": {
+        "planId": { "type": "string", "description": "Unique hierarchical code (e.g., PL1.1.1)" },
+        "appendix": { "type": "string", "description": "Appendix name (e.g., PL 1.2 - ĐTXDCB)" },
+        "costItem": { "type": "string", "description": "Cost item reference (e.g., 1.1)" },
+        "description": { "type": "string", "description": "Description of the cost item" },
+        "budget": { "type": "number", "description": "Approved budget in VNĐ" },
+        "departmentName": { "type": "string", "description": "Name of the department responsible" },
+        "year": { "type": "number", "description": "Fiscal year" },
+        "additional_info": { "type": "object", "description": "Dynamic attributes (JSONB)" }
+      },
+      "required": ["planId", "departmentName", "year"]
+    },
+    "Contract": {
+      "title": "Contract",
+      "description": "Contract associated with a plan item",
+      "type": "object",
+      "properties": {
+        "contractNumber": { "type": "string" },
+        "planId": { "type": "string" },
+        "date": { "type": "string", "format": "date" },
+        "value": { "type": "number" },
+        "contractor": { "type": "string" },
+        "createdBy": { "type": "string" },
+        "additionalInfo": { "type": "object", "description": "Dynamic attributes" }
+      },
+      "required": ["contractNumber", "planId", "value"]
+    },
+    "Invoice": {
+      "title": "Invoice",
+      "description": "Invoice associated with a contract",
+      "type": "object",
+      "properties": {
+        "invoiceNumber": { "type": "string" },
+        "contractNumber": { "type": "string" },
+        "date": { "type": "string", "format": "date" },
+        "giaTriTruocThue": { "type": "number" },
+        "tienThue": { "type": "number" },
+        "giaTriSauThue": { "type": "number" },
+        "createdBy": { "type": "string" }
+      },
+      "required": ["invoiceNumber", "contractNumber", "giaTriSauThue"]
+    },
+    "Forecast": {
+      "title": "Rolling Forecast",
+      "description": "Monthly disbursement registration",
+      "type": "object",
+      "properties": {
+        "planId": { "type": "string" },
+        "year": { "type": "number" },
+        "month": { "type": "number" },
+        "amount": { "type": "number" },
+        "updatedBy": { "type": "string" },
+        "updatedAt": { "type": "string", "format": "date-time" }
+      },
+      "required": ["planId", "year", "month", "amount"]
+    },
+    "MasterAppendix": {
+      "title": "Master Appendix",
+      "description": "Standardized appendix list",
+      "type": "object",
+      "properties": {
+        "tenPhuLuc": { "type": "string", "description": "Name of the appendix" }
+      },
+      "required": ["tenPhuLuc"]
+    }
+  },
+  "firestore": {
+    "/departments/{deptId}": {
+      "schema": "Department",
+      "description": "List of company departments"
+    },
+    "/plans/{planId}": {
+      "schema": "Plan",
+      "description": "Master planning items"
+    },
+    "/contracts/{contractId}": {
+      "schema": "Contract",
+      "description": "Contracts linked to plans"
+    },
+    "/invoices/{invoiceId}": {
+      "schema": "Invoice",
+      "description": "Invoices linked to contracts"
+    },
+    "/forecasts/{forecastId}": {
+      "schema": "Forecast",
+      "description": "Monthly disbursement registrations"
+    },
+    "/master_appendices/{appendixId}": {
+      "schema": "MasterAppendix",
+      "description": "Standardized appendix list"
+    }
+  }
+}
