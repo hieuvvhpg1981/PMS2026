@@ -74,8 +74,10 @@ export default function App() {
   const [activeTab, setActiveTab] = useState<string>('dashboard');
   const [isSidebarOpen, setIsSidebarOpen] = useState(false);
 
-  // Active Authenticated User & Session state with JWT Expiration check
-  const [currentUser, setCurrentUser] = useState<UserProfile | null>(() => PmsService.getStoredAuthUser());
+  // Active Authenticated User & Session state with strict Auth Guard (strictly null if no session)
+  const [currentUser, setCurrentUser] = useState<UserProfile | null>(() => {
+    return PmsService.getStoredAuthUser();
+  });
   const [isPermissionModalOpen, setIsPermissionModalOpen] = useState(false);
   const [isAdminSettingsOpen, setIsAdminSettingsOpen] = useState(false);
 

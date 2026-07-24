@@ -607,15 +607,16 @@ export const PmsService = {
     if (typeof localStorage === 'undefined') {
       return null;
     }
-    const raw = localStorage.getItem('PMS_2026_AUTH_USER_KEY');
+    const raw = localStorage.getItem('PMS_USER_DATABASE_KEY_SESSION') || localStorage.getItem('PMS_2026_AUTH_USER_KEY');
     if (!raw) return null;
     try {
       const user = JSON.parse(raw);
+      if (!user || !user.email) return null;
       // TOKEN EXPIRATION CHECK (exp payload in seconds)
       if (user.exp && typeof user.exp === 'number') {
         const expiresAtMs = user.exp * 1000;
         if (Date.now() >= expiresAtMs) {
-          console.warn('[AUTH GUARD] Google JWT Token expired! Clearing session & redirecting to login.');
+          console.warn('[AUTH GUARD] Token expired! Clearing session & redirecting to login.');
           this.clearStoredAuthUser();
           return null;
         }
@@ -629,12 +630,14 @@ export const PmsService = {
 
   setStoredAuthUser(user: UserProfile & { exp?: number; idToken?: string }): void {
     if (typeof localStorage !== 'undefined') {
+      localStorage.setItem('PMS_USER_DATABASE_KEY_SESSION', JSON.stringify(user));
       localStorage.setItem('PMS_2026_AUTH_USER_KEY', JSON.stringify(user));
     }
   },
 
   clearStoredAuthUser(): void {
     if (typeof localStorage !== 'undefined') {
+      localStorage.removeItem('PMS_USER_DATABASE_KEY_SESSION');
       localStorage.removeItem('PMS_2026_AUTH_USER_KEY');
     }
   },
