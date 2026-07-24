@@ -1,5 +1,5 @@
 import React, { useState, useEffect } from 'react';
-import { PmsService, ProjectData, UserProfile } from '../pms/T2_Services';
+import { PmsService, UserService, ProjectData, UserProfile } from '../pms/T2_Services';
 import { SystemSettings, DEFAULT_SYSTEM_SETTINGS, UserRole, UserAccount, INITIAL_USERS } from '../pms/T0_Config';
 import { verifyGoogleDriveConnection, updateUserAccountInSystem } from '../pms/T1_Utils';
 import {
@@ -22,7 +22,9 @@ import {
   RotateCcw,
   Lock,
   UserX,
-  UserCheck
+  UserCheck,
+  Cloud,
+  CloudCheck
 } from 'lucide-react';
 import { toast } from 'sonner';
 
@@ -49,9 +51,11 @@ export const AdminSettingsDrawer: React.FC<AdminSettingsDrawerProps> = ({
   const [driveConnectionResult, setDriveConnectionResult] = useState<any | null>(null);
 
   // Tab 2: Users Accounts & RBAC States
-  const [accountsList, setAccountsList] = useState<UserAccount[]>(PmsService.getUserAccounts());
-  const [projectsList, setProjectsList] = useState<ProjectData[]>(PmsService.getProjects());
+  const [accountsList, setAccountsList] = useState<UserAccount[]>([]);
+  const [projectsList, setProjectsList] = useState<ProjectData[]>([]);
   const [visiblePasswords, setVisiblePasswords] = useState<Record<string, boolean>>({});
+  const [isLoadingAccounts, setIsLoadingAccounts] = useState(false);
+  const [cloudSyncing, setCloudSyncing] = useState(false);
 
   // Add User Modal State
   const [showAddUserModal, setShowAddUserModal] = useState(false);
@@ -72,14 +76,31 @@ export const AdminSettingsDrawer: React.FC<AdminSettingsDrawerProps> = ({
 
   useEffect(() => {
     setSettings(PmsService.getSystemSettings());
-    setAccountsList(PmsService.getUserAccounts());
     setProjectsList(PmsService.getProjects());
+    loadFirestoreAccounts();
   }, [isOpen]);
 
-  const refreshAccountsList = () => {
-    const fresh = PmsService.getUserAccounts();
-    setAccountsList(fresh);
-    if (onRefreshProjects) onRefreshProjects();
+  const loadFirestoreAccounts = async () => {
+    setIsLoadingAccounts(true);
+    try {
+      const users = await UserService.fetchUsersFromFirestore();
+      setAccountsList(users);
+    } catch (err) {
+      console.error('Lỗi nạp danh sách tài khoản Firestore:', err);
+    } finally {
+      setIsLoadingAccounts(false);
+    }
+  };
+
+  const refreshAccountsList = async () => {
+    setCloudSyncing(true);
+    try {
+      const users = await UserService.fetchUsersFromFirestore();
+      setAccountsList(users);
+      if (onRefreshProjects) onRefreshProjects();
+    } finally {
+      setCloudSyncing(false);
+    }
   };
 
   // Tab 1 Actions
@@ -112,59 +133,92 @@ export const AdminSettingsDrawer: React.FC<AdminSettingsDrawerProps> = ({
     }));
   };
 
-  // Quick Password Reset Handler
-  const handleQuickResetPassword = (acc: UserAccount) => {
-    PmsService.resetUserPassword(acc.id, '123456');
-    refreshAccountsList();
-    toast.success(`Đã reset mật khẩu của tài khoản [${acc.email}] về mặc định: 123456`);
-  };
-
-  // Toggle User Active / Delete Handler
-  const handleToggleUserActive = (acc: UserAccount) => {
-    const updated: UserAccount = {
-      ...acc,
-      isActive: !acc.isActive,
-      updatedAt: new Date().toISOString().replace('T', ' ').substring(0, 16)
-    };
-    PmsService.saveUserAccount(updated);
-    refreshAccountsList();
-    toast.info(`Đã ${updated.isActive ? 'kích hoạt lại' : 'tạm khóa'} tài khoản [${acc.email}]`);
-  };
-
-  const handleDeleteUserAccount = (acc: UserAccount) => {
-    if (confirm(`Bạn có chắc chắn muốn xóa vĩnh viễn tài khoản [${acc.email}] khỏi hệ thống?`)) {
-      PmsService.deleteUserAccount(acc.id);
-      refreshAccountsList();
-      toast.success(`Đã xóa vĩnh viễn tài khoản [${acc.email}] khỏi cơ sở dữ liệu.`);
+  // Quick Password Reset Handler via Firestore
+  const handleQuickResetPassword = async (acc: UserAccount) => {
+    setCloudSyncing(true);
+    try {
+      const updatedAcc: UserAccount = {
+        ...acc,
+        passwordHash: '123456',
+        updatedAt: new Date().toISOString().replace('T', ' ').substring(0, 16)
+      };
+      await UserService.saveUserProfileToFirestore(updatedAcc);
+      await refreshAccountsList();
+      toast.success(`⚡ Đã reset mật khẩu tài khoản [${acc.email}] về mặc định: 123456 trên Firebase Cloud!`);
+    } catch (err: any) {
+      toast.error('❌ Lỗi cập nhật mật khẩu lên Firebase Firestore!');
+    } finally {
+      setCloudSyncing(false);
     }
   };
 
-  // Create New User Handler
-  const handleCreateNewUser = (e: React.FormEvent) => {
+  // Toggle User Active / Delete Handler via Firestore
+  const handleToggleUserActive = async (acc: UserAccount) => {
+    setCloudSyncing(true);
+    try {
+      const updatedAcc: UserAccount = {
+        ...acc,
+        isActive: !acc.isActive,
+        updatedAt: new Date().toISOString().replace('T', ' ').substring(0, 16)
+      };
+      await UserService.saveUserProfileToFirestore(updatedAcc);
+      await refreshAccountsList();
+      toast.info(`⚡ Đã ${updatedAcc.isActive ? 'kích hoạt lại' : 'tạm khóa'} tài khoản [${acc.email}] trên Cloud Firestore`);
+    } catch (err: any) {
+      toast.error('❌ Lỗi cập nhật trạng thái trên Firebase Firestore!');
+    } finally {
+      setCloudSyncing(false);
+    }
+  };
+
+  const handleDeleteUserAccount = async (acc: UserAccount) => {
+    if (confirm(`Bạn có chắc chắn muốn xóa vĩnh viễn tài khoản [${acc.email}] khỏi Firebase Firestore Cloud?`)) {
+      setCloudSyncing(true);
+      try {
+        await UserService.deleteUserFromFirestore(acc.id);
+        await refreshAccountsList();
+        toast.success(`⚡ Đã xóa vĩnh viễn tài khoản [${acc.email}] khỏi Firebase Cloud Firestore.`);
+      } catch (err: any) {
+        toast.error('❌ Lỗi xóa tài khoản khỏi Firebase Firestore!');
+      } finally {
+        setCloudSyncing(false);
+      }
+    }
+  };
+
+  // Create New User Handler via Firestore
+  const handleCreateNewUser = async (e: React.FormEvent) => {
     e.preventDefault();
     if (!newUserEmail || !newUserEmail.includes('@')) {
       toast.error('Vui lòng nhập Địa chỉ Email hợp lệ!');
       return;
     }
 
-    const newAcc: UserAccount = {
-      id: `usr-${Date.now().toString().slice(-4)}`,
-      email: newUserEmail.trim().toLowerCase(),
-      passwordHash: newUserPassword.trim() || '123456',
-      fullName: newUserName.trim() || newUserEmail.split('@')[0],
-      role: newUserRole,
-      assignedProjectIds: newUserRole === UserRole.ADMIN ? ['ALL'] : ['DA-2026-001'],
-      isActive: true,
-      updatedAt: new Date().toISOString().replace('T', ' ').substring(0, 16)
-    };
+    setCloudSyncing(true);
+    try {
+      const newAcc: UserAccount = {
+        id: `usr-${Date.now().toString().slice(-4)}`,
+        email: newUserEmail.trim().toLowerCase(),
+        passwordHash: newUserPassword.trim() || '123456',
+        fullName: newUserName.trim() || newUserEmail.split('@')[0],
+        role: newUserRole,
+        assignedProjectIds: newUserRole === UserRole.ADMIN ? ['ALL'] : ['DA-2026-001'],
+        isActive: true,
+        updatedAt: new Date().toISOString().replace('T', ' ').substring(0, 16)
+      };
 
-    PmsService.saveUserAccount(newAcc);
-    refreshAccountsList();
-    setShowAddUserModal(false);
-    setNewUserEmail('');
-    setNewUserName('');
-    setNewUserPassword('123456');
-    toast.success(`Đã tạo tài khoản mới thành công: ${newAcc.fullName} (${newAcc.email})`);
+      await UserService.saveUserProfileToFirestore(newAcc);
+      await refreshAccountsList();
+      setShowAddUserModal(false);
+      setNewUserEmail('');
+      setNewUserName('');
+      setNewUserPassword('123456');
+      toast.success(`⚡ Đã đồng bộ tài khoản mới lên Firebase Cloud: ${newAcc.fullName} (${newAcc.email})`);
+    } catch (err: any) {
+      toast.error('❌ Lỗi tạo tài khoản mới trên Firebase Cloud!');
+    } finally {
+      setCloudSyncing(false);
+    }
   };
 
   // Open Edit User Modal
@@ -179,8 +233,8 @@ export const AdminSettingsDrawer: React.FC<AdminSettingsDrawerProps> = ({
     setShowEditPasswordText(false);
   };
 
-  // Save Edit User Modal
-  const handleSaveEditUser = (e: React.FormEvent) => {
+  // Save Edit User Modal via Firestore
+  const handleSaveEditUser = async (e: React.FormEvent) => {
     e.preventDefault();
     if (!editingAccount) return;
 
@@ -189,21 +243,28 @@ export const AdminSettingsDrawer: React.FC<AdminSettingsDrawerProps> = ({
       return;
     }
 
-    const updatedAcc: UserAccount = {
-      ...editingAccount,
-      email: editEmail.trim().toLowerCase(),
-      fullName: editFullName.trim(),
-      passwordHash: editPassword.trim(),
-      role: editRole,
-      assignedProjectIds: editAssignedProjectIds,
-      isActive: editIsActive,
-      updatedAt: new Date().toISOString().replace('T', ' ').substring(0, 16)
-    };
+    setCloudSyncing(true);
+    try {
+      const updatedAcc: UserAccount = {
+        ...editingAccount,
+        email: editEmail.trim().toLowerCase(),
+        fullName: editFullName.trim(),
+        passwordHash: editPassword.trim(),
+        role: editRole,
+        assignedProjectIds: editAssignedProjectIds,
+        isActive: editIsActive,
+        updatedAt: new Date().toISOString().replace('T', ' ').substring(0, 16)
+      };
 
-    PmsService.saveUserAccount(updatedAcc);
-    refreshAccountsList();
-    setEditingAccount(null);
-    toast.success(`Đã cập nhật thông tin & phân quyền tài khoản [${updatedAcc.email}] thành công!`);
+      await UserService.saveUserProfileToFirestore(updatedAcc);
+      await refreshAccountsList();
+      setEditingAccount(null);
+      toast.success(`⚡ Đã đồng bộ phân quyền & thông tin tài khoản [${updatedAcc.email}] lên Firebase Firestore!`);
+    } catch (err: any) {
+      toast.error('❌ Lỗi đồng bộ dữ liệu lên Cloud Firestore!');
+    } finally {
+      setCloudSyncing(false);
+    }
   };
 
   return (
@@ -351,16 +412,30 @@ export const AdminSettingsDrawer: React.FC<AdminSettingsDrawerProps> = ({
                 <div>
                   <h3 className="font-black text-slate-900 text-sm flex items-center gap-2">
                     <Users className="w-4.5 h-4.5 text-purple-600" /> QUẢN LÝ TÀI KHOẢN NGƯỜI DÙNG & MẬT KHẨU
+                    <span className="inline-flex items-center gap-1 text-[11px] font-bold text-emerald-800 bg-emerald-50 px-2.5 py-0.5 rounded-full border border-emerald-200 ml-2">
+                      <CloudCheck className="w-3.5 h-3.5 text-emerald-600" /> Firebase Cloud Firestore
+                    </span>
                   </h3>
-                  <p className="text-[11px] text-slate-500 font-medium">Danh sách tài khoản nội bộ cấp sẵn đăng nhập vào hệ thống PMS 2026</p>
+                  <p className="text-[11px] text-slate-500 font-medium">Danh sách tài khoản đồng bộ thời gian thực từ CSDL Đám Mây Firebase Firestore</p>
                 </div>
 
-                <button
-                  onClick={() => setShowAddUserModal(true)}
-                  className="px-4 py-2.5 bg-purple-600 hover:bg-purple-700 text-white font-bold rounded-xl transition-all shadow-md flex items-center gap-1.5 cursor-pointer"
-                >
-                  <Plus size={16} /> [+ Thêm Người Dùng Mới]
-                </button>
+                <div className="flex items-center gap-2">
+                  <button
+                    onClick={refreshAccountsList}
+                    disabled={cloudSyncing || isLoadingAccounts}
+                    className="p-2 bg-slate-100 hover:bg-slate-200 text-slate-700 font-bold rounded-xl transition-all border border-slate-200 flex items-center gap-1 cursor-pointer disabled:opacity-50"
+                    title="Tải lại từ Cloud Firestore"
+                  >
+                    <RefreshCw size={15} className={cloudSyncing || isLoadingAccounts ? 'animate-spin text-purple-600' : ''} />
+                  </button>
+
+                  <button
+                    onClick={() => setShowAddUserModal(true)}
+                    className="px-4 py-2.5 bg-purple-600 hover:bg-purple-700 text-white font-bold rounded-xl transition-all shadow-md flex items-center gap-1.5 cursor-pointer"
+                  >
+                    <Plus size={16} /> [+ Thêm Người Dùng Mới]
+                  </button>
+                </div>
               </div>
 
               {/* USER PERMISSIONS & PASSWORDS TABLE */}

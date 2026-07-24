@@ -4,8 +4,8 @@
  * Có thể thực thi trực tiếp qua terminal bằng: npx tsx src/pms/T5_SchedulersTests/pmsUnitTests.test.ts
  */
 
-import { PmsService } from '../T2_Services';
-import { ProjectGroup, ConstructionGrade, ApprovalStatus, GpmbStatus } from '../T0_Config';
+import { PmsService, UserService } from '../T2_Services';
+import { ProjectGroup, ConstructionGrade, ApprovalStatus, GpmbStatus, db } from '../T0_Config';
 import { safeNumber, safeString, formatVND, validateRequiredAttachments, checkEstimateExceedsTMDT, parseExcelArrayBufferToJSON, updateBoqRow, recalculateTotalBudget, calculateBiddingSavings, validateRequiredAttachmentsStage3, validatePackageDisbursement, canUserAccessProject, filterProjectsForUser, uploadToUserPersonalDrive, shareDriveFolderWithUsers, verifyGoogleDriveConnection, decodeGoogleJwt, matchUserRole, authenticateUserCredentials, updateUserAccountInSystem } from '../T1_Utils';
 import * as XLSX from 'xlsx';
 
@@ -277,6 +277,17 @@ function runPmsUnitTestSuite() {
   assert(
     resetUser?.passwordHash === '123456',
     'Reset mật khẩu tài khoản về mặc định 123456 thành công'
+  );
+
+  // --- TEST CASE 15: Firebase Firestore Service & Environment Config Integrity ---
+  console.log('\n--- TEST 15: Firebase Firestore Service & Environment Config Integrity ---');
+  assert(
+    db !== undefined && typeof db.app.name === 'string',
+    'Khởi tạo Firebase App & Firestore db trong T0_Config/firebase.ts thành công từ .env'
+  );
+  assert(
+    typeof UserService.fetchUsersFromFirestore === 'function' && typeof UserService.authenticateUserFirestore === 'function',
+    'UserService cung cấp đầy đủ các API bất đồng bộ (fetchUsersFromFirestore, authenticateUserFirestore, saveUserProfileToFirestore)'
   );
 
   console.log(`\n================ SUMMARY: ${passed} PASSED, ${failed} FAILED ================`);

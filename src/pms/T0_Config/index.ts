@@ -3,6 +3,8 @@
  * Khai báo duy nhất cấu hình hệ thống, legal constants, enums, định mức, endpoints và danh mục loại văn bản & Excel Column Schemas cho các Giai đoạn 1 -> 4.
  */
 
+export * from './firebase';
+
 export const PMS_CONFIG = {
   APP_NAME: 'PMS 2026 - HỆ THỐNG QUẢN LÝ DỰ ÁN ĐẦU TƯ XÂY DỰNG',
   VERSION: '2026.4.0-ENTERPRISE',

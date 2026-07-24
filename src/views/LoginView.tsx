@@ -1,6 +1,4 @@
-import React, { useState } from 'react';
-import { authenticateUserCredentials } from '../pms/T1_Utils';
-import { PmsService, UserProfile } from '../pms/T2_Services';
+import { UserService, PmsService, UserProfile } from '../pms/T2_Services';
 import {
   ShieldCheck,
   Building2,
@@ -13,7 +11,8 @@ import {
   Eye,
   EyeOff,
   Sparkles,
-  Mail
+  Mail,
+  RefreshCw
 } from 'lucide-react';
 import { toast } from 'sonner';
 
@@ -28,15 +27,14 @@ export const LoginView: React.FC<LoginViewProps> = ({ onLoginSuccess }) => {
   const [errorMessage, setErrorMessage] = useState<string | null>(null);
   const [isSubmitting, setIsSubmitting] = useState(false);
 
-  // Form Credentials Login Handler
-  const handleCredentialsSubmit = (e: React.FormEvent) => {
+  // Async Firebase Firestore Login Handler
+  const handleCredentialsSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     setErrorMessage(null);
     setIsSubmitting(true);
 
-    setTimeout(() => {
-      const allAccounts = PmsService.getUserAccounts();
-      const res = authenticateUserCredentials(emailInput, passwordInput, allAccounts);
+    try {
+      const res = await UserService.authenticateUserFirestore(emailInput, passwordInput);
 
       if (!res.success || !res.user) {
         setErrorMessage(res.message);
@@ -45,18 +43,20 @@ export const LoginView: React.FC<LoginViewProps> = ({ onLoginSuccess }) => {
         return;
       }
 
-      // Simulate 1 hour expiration timestamp (3600 seconds)
-      const simulatedExp = Math.floor(Date.now() / 1000) + 3600;
       const authenticatedUser: UserProfile & { exp?: number } = {
-        ...res.user,
-        exp: simulatedExp
+        ...res.user
       };
 
       PmsService.setStoredAuthUser(authenticatedUser);
-      toast.success(`Xin chào ${authenticatedUser.name}! Đăng nhập hệ thống thành công.`);
+      toast.success(`⚡ Xin chào ${authenticatedUser.name}! Đã xác thực thành công qua Cloud Firestore.`);
       onLoginSuccess(authenticatedUser);
+    } catch (err: any) {
+      console.error('❌ Firebase Auth Exception:', err);
+      setErrorMessage('❌ Không thể kết nối tới Cơ sở dữ liệu Firebase Cloud. Vui lòng kiểm tra kết nối mạng!');
+      toast.error('Lỗi kết nối Firebase Firestore Cloud!');
+    } finally {
       setIsSubmitting(false);
-    }, 400);
+    }
   };
 
   return (
@@ -198,8 +198,17 @@ export const LoginView: React.FC<LoginViewProps> = ({ onLoginSuccess }) => {
               disabled={isSubmitting}
               className="w-full py-4 bg-blue-600 hover:bg-blue-700 text-white font-black text-sm rounded-2xl transition-all shadow-lg shadow-blue-500/25 flex items-center justify-center gap-2 cursor-pointer disabled:opacity-50 tracking-wider uppercase"
             >
-              <Key className="w-4 h-4" />
-              <span>{isSubmitting ? 'Đang xác thực...' : '[🔑 ĐĂNG NHẬP HỆ THỐNG]'}</span>
+              {isSubmitting ? (
+                <>
+                  <RefreshCw className="w-4 h-4 animate-spin" />
+                  <span>Đang kết nối Firebase Cloud Firestore...</span>
+                </>
+              ) : (
+                <>
+                  <Key className="w-4 h-4" />
+                  <span>[🔑 ĐĂNG NHẬP HỆ THỐNG]</span>
+                </>
+              )}
             </button>
           </form>
 

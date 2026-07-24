@@ -3,6 +3,8 @@
  * Thao tác CRUD Cơ sở dữ liệu ngầm, xử lý hàm tính toán TMĐT, Dự toán BOQ, GPMB, LCNT, Hợp đồng QĐ 1040, Package Hard Block và Batch Insert.
  */
 
+export * from './UserService';
+
 import { PMS_CONFIG, ProjectGroup, ConstructionGrade, ContractType, DesignType, ApprovalStatus, ProcurementMethod, GpmbStatus, PackageType, SystemSettings, DEFAULT_SYSTEM_SETTINGS, INITIAL_USERS, UserAccount } from '../T0_Config';
 import { safeNumber, safeString, checkEstimateExceedsTMDT, calculateBiddingSavings, validatePackageDisbursement } from '../T1_Utils';
 
