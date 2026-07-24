@@ -43,9 +43,10 @@ export default function Stage1InitiationView({
   
   // Initiation inputs
   const [tenDuAn, setTenDuAn] = useState('');
-  const [tongMucDauTuInput, setTongMucDauTuInput] = useState<number>(100_000_000_000);
+  const [tongMucDauTuInput, setTongMucDauTuInput] = useState<number>(35_000_000_000);
   const [isSpecial, setIsSpecial] = useState(false);
   const [isSimpleRenovation, setIsSimpleRenovation] = useState(false);
+  const [isSpecialArea, setIsSpecialArea] = useState(false); // Vùng đặc biệt khó khăn (< 70 tỷ)
   const [chuDauTu, setChuDauTu] = useState('Ban QLDA Đầu tư Xây dựng Công trình Giao thông');
   const [nguonVon, setNguonVon] = useState('Ngân sách Đầu tư công 2026');
   const [smartCaToken, setSmartCaToken] = useState('SMARTCA-AUTH-TOKEN-ADMIN-2026');
@@ -63,14 +64,19 @@ export default function Stage1InitiationView({
 
   const currentProject = projects.find(p => p.PROJECT_ID === selectedProjectId);
 
-  // Real-time Auto-routing engine computation with calculateProjectRouting
+  // Real-time Auto-routing engine computation with calculateProjectRouting (NĐ 217/2026/NĐ-CP)
   const routing = useMemo(() => {
     return PmsService.autoRouteProjectGroup(tongMucDauTuInput, isSpecial, isSimpleRenovation);
   }, [tongMucDauTuInput, isSpecial, isSimpleRenovation]);
 
   const projectRoutingResult = useMemo(() => {
-    return calculateProjectRouting(tongMucDauTuInput);
-  }, [tongMucDauTuInput]);
+    return calculateProjectRouting(tongMucDauTuInput, isSpecialArea);
+  }, [tongMucDauTuInput, isSpecialArea]);
+
+  const isBcktkt = useMemo(() => {
+    const limit = isSpecialArea ? 70_000_000_000 : 40_000_000_000;
+    return tongMucDauTuInput > 0 && tongMucDauTuInput < limit;
+  }, [tongMucDauTuInput, isSpecialArea]);
 
   // Dynamic Required Document Matrix according to routing result
   const requiredMatrix = useMemo(() => {
@@ -184,18 +190,38 @@ export default function Stage1InitiationView({
                     type="number"
                     value={tongMucDauTuInput}
                     onChange={e => setTongMucDauTuInput(Number(e.target.value) || 0)}
-                    className="w-full px-3 py-2 border border-slate-300 rounded-xl font-mono font-bold text-blue-900 outline-none focus:ring-2 focus:ring-blue-500"
+                    className="w-full px-3.5 py-2.5 border border-slate-300 rounded-xl font-mono font-bold text-blue-900 outline-none focus:ring-2 focus:ring-blue-500"
                   />
-                  <div className="mt-1 space-y-1">
-                    <span className="text-[11px] text-slate-500 font-semibold block">Định dạng: {formatVND(tongMucDauTuInput)}</span>
-                    {/* Real-time calculateProjectRouting Badge */}
-                    <div className="p-2.5 bg-emerald-50 border border-emerald-300 rounded-xl text-emerald-950 font-extrabold text-xs flex items-center gap-2 shadow-2xs">
-                      <CheckCircle className="w-4 h-4 text-emerald-600 shrink-0" />
-                      <span>Luồng pháp lý: {projectRoutingResult}</span>
-                    </div>
-                  </div>
+                  <span className="text-[11px] text-slate-500 font-semibold block mt-1">Định dạng: {formatVND(tongMucDauTuInput)}</span>
                 </div>
 
+                {/* DYNAMIC READ-ONLY FIELD FOR NĐ 217/2026/NĐ-CP CLASSIFICATION */}
+                <div>
+                  <label className="block text-slate-700 font-bold mb-1">PHÂN CẤP PHÂN LOẠI (NĐ 217/2026/NĐ-CP)</label>
+                  <div className={`p-2.5 rounded-xl border font-black text-xs flex items-center justify-between shadow-2xs transition-all ${
+                    isBcktkt 
+                      ? 'bg-emerald-50 border-emerald-400 text-emerald-950' 
+                      : 'bg-amber-50 border-amber-400 text-amber-950'
+                  }`}>
+                    <div className="flex items-center gap-2">
+                      <Sparkles className={`w-4 h-4 ${isBcktkt ? 'text-emerald-600' : 'text-amber-600'}`} />
+                      <span>{projectRoutingResult}</span>
+                    </div>
+                    <span className={`px-2 py-0.5 rounded-md text-[10px] font-extrabold uppercase ${
+                      isBcktkt ? 'bg-emerald-200 text-emerald-900' : 'bg-amber-200 text-amber-900'
+                    }`}>
+                      {isBcktkt ? 'Báo cáo KT-KT' : 'BC NCT-KT'}
+                    </span>
+                  </div>
+                  <span className="text-[11px] text-slate-500 font-normal block mt-1">
+                    {isBcktkt 
+                      ? `✅ Dự toán < ${isSpecialArea ? '70' : '40'} tỷ VNĐ: Tự động phân loại lập BCKTKT (1 bước thu gọn)`
+                      : `⚠️ Dự toán >= ${isSpecialArea ? '70' : '40'} tỷ VNĐ: Tự động phân loại lập BCNCTKT / BCNCKT`}
+                  </span>
+                </div>
+              </div>
+
+              <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
                 <div>
                   <label className="block text-slate-700 font-bold mb-1">NGUỒN VỐN ĐẦU TƯ</label>
                   <select
@@ -209,38 +235,44 @@ export default function Stage1InitiationView({
                     <option value="Vốn Hỗn hợp & Khác">Vốn Hỗn hợp & Khác</option>
                   </select>
                 </div>
+
+                <div>
+                  <label className="block text-slate-700 font-bold mb-1">CHỦ ĐẦU TƯ / ĐẠI DIỆN CHỦ ĐẦU TƯ</label>
+                  <input
+                    type="text"
+                    value={chuDauTu}
+                    onChange={e => setChuDauTu(e.target.value)}
+                    className="w-full px-3 py-2 border border-slate-300 rounded-xl text-slate-800 outline-none"
+                  />
+                </div>
               </div>
 
-              <div>
-                <label className="block text-slate-700 font-bold mb-1">CHỦ ĐẦU TƯ / ĐẠI DIỆN CHỦ ĐẦU TƯ</label>
-                <input
-                  type="text"
-                  value={chuDauTu}
-                  onChange={e => setChuDauTu(e.target.value)}
-                  className="w-full px-3 py-2 border border-slate-300 rounded-xl text-slate-800 outline-none"
-                />
-              </div>
-
-              {/* Checkbox đặc thù */}
+              {/* Checkbox đặc thù theo Nghị định 217/2026/NĐ-CP */}
               <div className="grid grid-cols-1 sm:grid-cols-2 gap-3 pt-2">
-                <label className="flex items-center gap-2 cursor-pointer bg-slate-50 p-2.5 rounded-xl border border-slate-200 hover:bg-slate-100">
+                <label className="flex items-center gap-2 cursor-pointer bg-slate-50 p-2.5 rounded-xl border border-slate-200 hover:bg-slate-100 transition-all">
+                  <input
+                    type="checkbox"
+                    checked={isSpecialArea}
+                    onChange={e => setIsSpecialArea(e.target.checked)}
+                    className="w-4 h-4 text-emerald-600 rounded cursor-pointer"
+                  />
+                  <div>
+                    <span className="font-bold text-slate-900 block text-xs">Vùng đặc biệt khó khăn (Hạn mức dưới 70 tỷ)</span>
+                    <span className="text-[10px] text-slate-500 block">Nâng hạn mức lập BCKTKT lên 70 tỷ VNĐ</span>
+                  </div>
+                </label>
+
+                <label className="flex items-center gap-2 cursor-pointer bg-slate-50 p-2.5 rounded-xl border border-slate-200 hover:bg-slate-100 transition-all">
                   <input
                     type="checkbox"
                     checked={isSpecial}
                     onChange={e => setIsSpecial(e.target.checked)}
-                    className="w-4 h-4 text-blue-600 rounded"
+                    className="w-4 h-4 text-blue-600 rounded cursor-pointer"
                   />
-                  <span className="font-semibold text-slate-800">Công trình Hạ tầng Kỹ thuật Quốc gia Cấp Đặc biệt</span>
-                </label>
-
-                <label className="flex items-center gap-2 cursor-pointer bg-slate-50 p-2.5 rounded-xl border border-slate-200 hover:bg-slate-100">
-                  <input
-                    type="checkbox"
-                    checked={isSimpleRenovation}
-                    onChange={e => setIsSimpleRenovation(e.target.checked)}
-                    className="w-4 h-4 text-blue-600 rounded"
-                  />
-                  <span className="font-semibold text-slate-800">Công trình cải tạo, sửa chữa quy mô nhỏ (Trường hợp BCKTKT thu gọn)</span>
+                  <div>
+                    <span className="font-bold text-slate-900 block text-xs">Hạ tầng Kỹ thuật Cấp Đặc biệt</span>
+                    <span className="text-[10px] text-slate-500 block">Trình duyệt thẩm định Cấp Bộ / Chính phủ</span>
+                  </div>
                 </label>
               </div>
 

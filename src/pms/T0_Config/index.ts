@@ -46,7 +46,8 @@ export const PMS_CONFIG = {
   PROJECT_GROUP_THRESHOLDS: {
     GROUP_A_MIN_VND: 800_000_000_000,  // Từ 800 tỷ trở lên -> Nhóm A / Quan trọng QG
     GROUP_B_MIN_VND: 120_000_000_000,  // Từ 120 tỷ đến dưới 800 tỷ -> Nhóm B
-    BCKTKT_MAX_VND: 15_000_000_000,    // Công trình tôn tạo, sửa chữa, cải tạo quy mô dưới 15 tỷ -> BCKTKT (Thu gọn 1 bước)
+    BCKTKT_MAX_VND: 40_000_000_000,    // Hạn mức lập BCKTKT theo NĐ 217/2026/NĐ-CP (dưới 40 tỷ)
+    BCKTKT_SPECIAL_AREA_MAX_VND: 70_000_000_000, // Hạn mức lập BCKTKT vùng đặc biệt khó khăn theo NĐ 217/2026/NĐ-CP (dưới 70 tỷ)
   },
 
   // Cấu hình Google Drive OAuth 2.0 & Storage

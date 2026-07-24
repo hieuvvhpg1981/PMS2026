@@ -7,29 +7,35 @@ import * as XLSX from 'xlsx';
 import { STAGE1_DOCUMENT_TYPES, STAGE2_DOCUMENT_TYPES, STAGE3_DOCUMENT_TYPES, EXCEL_GANTT_COLUMNS, EXCEL_BOQ_COLUMNS, EXCEL_GPMB_COLUMNS, EXCEL_KHLCNT_COLUMNS, EXCEL_CONSULTING_COLUMNS, INITIAL_USERS, UserAccount } from '../T0_Config';
 
 /**
- * HÀM LOGIC PHÂN LOẠI NGƯỠNG PHÁP LÝ AUTO-ROUTING (LUẬT XÂY DỰNG / LUẬT ĐẦU TƯ CÔNG)
+ * HÀM LOGIC PHÂN LOẠI NGƯỠNG PHÁP LÝ AUTO-ROUTING (THEO NGHỊ ĐỊNH 217/2026/NĐ-CP & LUẬT XÂY DỰNG 135/2025)
  */
-export const calculateProjectRouting = (totalInvestmentVND: number): string => {
+export const calculateProjectRouting = (totalInvestmentVND: number, isSpecialArea: boolean = false): string => {
   const value = Number(totalInvestmentVND) || 0;
-  
-  // Dưới 15 tỷ: Chỉ cần lập Báo cáo Kinh tế - Kỹ thuật (BCKTKT)
-  if (value > 0 && value < 15000000000) {
-    return "BCKTKT - Báo cáo Kinh tế Kỹ thuật (Thiết kế 1 bước)";
+  const thresholdBCKTKT = isSpecialArea ? 70000000000 : 40000000000; // 70 tỷ vs 40 tỷ theo NĐ 217/2026/NĐ-CP
+
+  // Dưới 40 tỷ (hoặc dưới 70 tỷ Vùng ĐBKK): Tự động phân loại lập BCKTKT (Báo cáo Kinh tế - Kỹ thuật)
+  if (value > 0 && value < thresholdBCKTKT) {
+    return isSpecialArea
+      ? "BCKTKT (< 70 Tỷ - Vùng Đặc Biệt Khó Khăn - NĐ 217/2026/NĐ-CP)"
+      : "BCKTKT (< 40 Tỷ - Theo NĐ 217/2026/NĐ-CP)";
   }
-  // Từ 15 tỷ đến dưới 120 tỷ: Nhóm C
-  if (value >= 15000000000 && value < 120000000000) {
-    return "NHÓM C - Lập Báo cáo NCKT / Đề xuất Chủ trương ĐT";
+
+  // Từ 40 tỷ đến dưới 120 tỷ: Nhóm C (Lập BCNCTKT / BCNCKT)
+  if (value >= thresholdBCKTKT && value < 120000000000) {
+    return "BCNCTKT (>= 40 Tỷ - NHÓM C - NĐ 217/2026/NĐ-CP)";
   }
-  // Từ 120 tỷ đến dưới 2300 tỷ: Nhóm B
-  if (value >= 120000000000 && value < 2300000000000) {
-    return "NHÓM B - Lập Báo cáo NCKT / Báo cáo Nghiên cứu Tiền khả thi";
+
+  // Từ 120 tỷ đến dưới 800 tỷ: Nhóm B
+  if (value >= 120000000000 && value < 800000000000) {
+    return "BCNCTKT (>= 120 Tỷ - NHÓM B - NĐ 217/2026/NĐ-CP)";
   }
-  // Trên 2300 tỷ: Nhóm A / Quan trọng Quốc gia
-  if (value >= 2300000000000) {
-    return "NHÓM A - Phải lập Báo cáo NCKT (Trình cấp Bộ / Thủ tướng)";
+
+  // Trên 800 tỷ: Nhóm A / Dự án Quan trọng Quốc gia
+  if (value >= 800000000000) {
+    return "BCNCTKT (>= 800 Tỷ - NHÓM A - NĐ 217/2026/NĐ-CP)";
   }
-  
-  return "Chưa xác định";
+
+  return "BCKTKT (< 40 Tỷ - Theo NĐ 217/2026/NĐ-CP)";
 };
 
 /**
