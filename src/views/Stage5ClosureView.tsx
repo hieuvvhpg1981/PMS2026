@@ -12,12 +12,16 @@ import {
 } from 'lucide-react';
 import { toast } from 'sonner';
 
+import { UserProfile } from '../pms/T2_Services';
+
 interface Stage5ClosureViewProps {
+  currentUser?: UserProfile | null;
   selectedProjectId?: string;
   selectedPackageId?: string;
 }
 
 export default function Stage5ClosureView({
+  currentUser,
   selectedProjectId: propProjectId,
   selectedPackageId: propPackageId
 }: Stage5ClosureViewProps) {

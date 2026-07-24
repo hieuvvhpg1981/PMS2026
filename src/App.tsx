@@ -342,12 +342,12 @@ export default function App() {
                 />
               ) : (
                 <>
-                  {activeTab === 'dashboard' && <PmsDashboardView onSelectProject={() => setActiveTab('stage4')} />}
-                  {activeTab === 'stage1' && <Stage1InitiationView onProjectCreated={() => { refreshProjectsList(); setActiveTab('stage2'); }} />}
-                  {activeTab === 'stage2' && <Stage2DesignCostView />}
-                  {activeTab === 'stage3' && <Stage3ProcurementView />}
-                  {activeTab === 'stage4' && <Stage4ExecutionView selectedProjectId={globalProjectId} selectedPackageId={globalPackageId} />}
-                  {activeTab === 'stage5' && <Stage5ClosureView selectedProjectId={globalProjectId} selectedPackageId={globalPackageId} />}
+                  {activeTab === 'dashboard' && <PmsDashboardView currentUser={currentUser} onSelectProject={() => setActiveTab('stage4')} />}
+                  {activeTab === 'stage1' && <Stage1InitiationView currentUser={currentUser} onProjectCreated={() => { refreshProjectsList(); setActiveTab('stage2'); }} />}
+                  {activeTab === 'stage2' && <Stage2DesignCostView currentUser={currentUser} />}
+                  {activeTab === 'stage3' && <Stage3ProcurementView currentUser={currentUser} />}
+                  {activeTab === 'stage4' && <Stage4ExecutionView currentUser={currentUser} selectedProjectId={globalProjectId} selectedPackageId={globalPackageId} />}
+                  {activeTab === 'stage5' && <Stage5ClosureView currentUser={currentUser} selectedProjectId={globalProjectId} selectedPackageId={globalPackageId} />}
                   {activeTab === 'nationalDb' && <NationalDbSyncView />}
                 </>
               )}

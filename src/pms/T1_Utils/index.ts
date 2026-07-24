@@ -841,9 +841,8 @@ export function updateUserAccountInSystem(
   return {
     success: true,
     updatedAccounts: list,
-    message: 'Đã cập nhật thông tin tài khoản người dùng thành công!'
+    message: `Đã cập nhật tài khoản ${updatedData.email || existingId} thành công!`
   };
 }
 
-
-
+export * from './permissions';

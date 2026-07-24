@@ -2,7 +2,8 @@ import React, { useState, useEffect } from 'react';
 import { PmsService, ProjectData, BoqItem, GanttTaskItem, InternalReviewRecord } from '../pms/T2_Services';
 import { PmsHandlers } from '../pms/T3_Handlers';
 import { DesignType, ApprovalStatus, STAGE2_DOCUMENT_TYPES } from '../pms/T0_Config';
-import { formatVND, safeNumber, safeString, checkEstimateExceedsTMDT, generateExcelTemplate, updateBoqRow } from '../pms/T1_Utils';
+import { formatVND, safeNumber, safeString, checkEstimateExceedsTMDT, generateExcelTemplate, updateBoqRow, canEditProject } from '../pms/T1_Utils';
+import { UserProfile } from '../pms/T2_Services';
 import Stage2DocumentUploader from '../components/Stage2DocumentUploader';
 import ExcelDragDropUploader from '../components/ExcelDragDropUploader';
 import {
@@ -24,7 +25,7 @@ import {
 } from 'lucide-react';
 import { toast } from 'sonner';
 
-export default function Stage2DesignCostView() {
+export default function Stage2DesignCostView({ currentUser }: { currentUser?: UserProfile | null }) {
   const [projects, setProjects] = useState<ProjectData[]>([]);
   const [selectedProjectId, setSelectedProjectId] = useState<string>('');
   const [activeTab, setActiveTab] = useState<'plan' | 'boq' | 'approval'>('plan');

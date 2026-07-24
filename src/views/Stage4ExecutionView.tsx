@@ -18,12 +18,16 @@ function cn(...inputs: ClassValue[]) {
   return twMerge(clsx(inputs));
 }
 
+import { UserProfile } from '../pms/T2_Services';
+
 interface Stage4ExecutionViewProps {
+  currentUser?: UserProfile | null;
   selectedProjectId?: string;
   selectedPackageId?: string;
 }
 
 export default function Stage4ExecutionView({
+  currentUser,
   selectedProjectId: propProjectId,
   selectedPackageId: propPackageId
 }: Stage4ExecutionViewProps = {}) {

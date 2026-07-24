@@ -2,7 +2,8 @@ import React, { useState, useEffect } from 'react';
 import { PmsService, ProjectData, SiteClearanceRecord, ProcurementPackageRecord, ContractManagementRecord } from '../pms/T2_Services';
 import { PmsHandlers } from '../pms/T3_Handlers';
 import { ProcurementMethod, ContractType, GpmbStatus, STAGE3_DOCUMENT_TYPES } from '../pms/T0_Config';
-import { formatVND, safeNumber, safeString, calculateBiddingSavings, generateExcelTemplate } from '../pms/T1_Utils';
+import { formatVND, safeNumber, safeString, calculateBiddingSavings, generateExcelTemplate, canEditProject } from '../pms/T1_Utils';
+import { UserProfile } from '../pms/T2_Services';
 import Stage3DocumentUploader from '../components/Stage3DocumentUploader';
 import ExcelDragDropUploader from '../components/ExcelDragDropUploader';
 import {
@@ -29,7 +30,7 @@ import {
 } from 'lucide-react';
 import { toast } from 'sonner';
 
-export default function Stage3ProcurementView() {
+export default function Stage3ProcurementView({ currentUser }: { currentUser?: UserProfile | null }) {
   const [projects, setProjects] = useState<ProjectData[]>([]);
   const [selectedProjectId, setSelectedProjectId] = useState<string>('');
   const [activeTab, setActiveTab] = useState<'gpmb' | 'khlcnt' | 'contract'>('gpmb');

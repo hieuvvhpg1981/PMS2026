@@ -2,7 +2,8 @@ import React, { useState, useEffect, useMemo } from 'react';
 import { PmsService, ProjectData, Stage1DocumentRecord } from '../pms/T2_Services';
 import { PmsHandlers } from '../pms/T3_Handlers';
 import { ProjectGroup, ConstructionGrade, STAGE1_DOCUMENT_TYPES } from '../pms/T0_Config';
-import { formatVND, safeNumber, safeString, calculateProjectRouting, getRequiredDocumentMatrix } from '../pms/T1_Utils';
+import { formatVND, safeNumber, safeString, calculateProjectRouting, getRequiredDocumentMatrix, canCreateProject, canEditProject } from '../pms/T1_Utils';
+import { UserProfile } from '../pms/T2_Services';
 import Stage1DocumentUploader from '../components/Stage1DocumentUploader';
 import {
   FileCheck2,
@@ -30,7 +31,13 @@ import {
 } from 'lucide-react';
 import { toast } from 'sonner';
 
-export default function Stage1InitiationView({ onProjectCreated }: { onProjectCreated?: () => void }) {
+export default function Stage1InitiationView({
+  currentUser,
+  onProjectCreated
+}: {
+  currentUser?: UserProfile | null;
+  onProjectCreated?: () => void;
+}) {
   const [projects, setProjects] = useState<ProjectData[]>([]);
   const [selectedProjectId, setSelectedProjectId] = useState<string>('');
   
@@ -147,99 +154,111 @@ export default function Stage1InitiationView({ onProjectCreated }: { onProjectCr
             KHỞI TẠO HỒ SƠ DỰ ÁN ĐẦU TƯ XÂY DỰNG MỚI
           </h3>
 
-          <div className="space-y-3 text-xs">
-            <div>
-              <label className="block text-slate-700 font-bold mb-1">TÊN DỰ ÁN ĐẦU TƯ XÂY DỰNG *</label>
-              <input
-                type="text"
-                value={tenDuAn}
-                onChange={e => setTenDuAn(e.target.value)}
-                placeholder="VD: Dự án Xây dựng Cầu Vượt Nút Giao Thông..."
-                className="w-full px-3.5 py-2.5 border border-slate-300 rounded-xl focus:ring-2 focus:ring-blue-500 outline-none text-slate-900 font-semibold"
-              />
+          {!canCreateProject(currentUser) ? (
+            <div className="p-4 bg-amber-50 border border-amber-300 rounded-2xl text-amber-950 font-bold text-xs space-y-1">
+              <div className="flex items-center gap-2 text-amber-700">
+                <AlertCircle className="w-5 h-5 shrink-0" />
+                <span className="font-extrabold uppercase">CHẾ ĐỘ XEM VÀ BÁO CÁO (READ-ONLY)</span>
+              </div>
+              <p className="text-slate-600 font-normal">
+                Tài khoản của bạn ({currentUser?.email} - Vai trò: <strong>{currentUser?.role || 'MEMBER'}</strong>) được cấp quyền theo dõi thông tin. Tính năng <strong>[+ Khởi Tạo Dự Án Mới]</strong> chỉ dành cho Quản trị viên (ADMIN) hoặc Trưởng dự án (PROJECT MANAGER).
+              </p>
             </div>
-
-            <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+          ) : (
+            <div className="space-y-3 text-xs">
               <div>
-                <label className="block text-slate-700 font-bold mb-1">TỔNG MỨC ĐẦU TƯ DỰ KIẾN (VND) *</label>
+                <label className="block text-slate-700 font-bold mb-1">TÊN DỰ ÁN ĐẦU TƯ XÂY DỰNG *</label>
                 <input
-                  type="number"
-                  value={tongMucDauTuInput}
-                  onChange={e => setTongMucDauTuInput(Number(e.target.value) || 0)}
-                  className="w-full px-3 py-2 border border-slate-300 rounded-xl font-mono font-bold text-blue-900 outline-none focus:ring-2 focus:ring-blue-500"
+                  type="text"
+                  value={tenDuAn}
+                  onChange={e => setTenDuAn(e.target.value)}
+                  placeholder="VD: Dự án Xây dựng Cầu Vượt Nút Giao Thông..."
+                  className="w-full px-3.5 py-2.5 border border-slate-300 rounded-xl focus:ring-2 focus:ring-blue-500 outline-none text-slate-900 font-semibold"
                 />
-                <div className="mt-1 space-y-1">
-                  <span className="text-[11px] text-slate-500 font-semibold block">Định dạng: {formatVND(tongMucDauTuInput)}</span>
-                  {/* Real-time calculateProjectRouting Badge */}
-                  <div className="p-2.5 bg-emerald-50 border border-emerald-300 rounded-xl text-emerald-950 font-extrabold text-xs flex items-center gap-2 shadow-2xs">
-                    <CheckCircle className="w-4 h-4 text-emerald-600 shrink-0" />
-                    <span>Luồng pháp lý: {projectRoutingResult}</span>
+              </div>
+
+              <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+                <div>
+                  <label className="block text-slate-700 font-bold mb-1">TỔNG MỨC ĐẦU TƯ DỰ KIẾN (VND) *</label>
+                  <input
+                    type="number"
+                    value={tongMucDauTuInput}
+                    onChange={e => setTongMucDauTuInput(Number(e.target.value) || 0)}
+                    className="w-full px-3 py-2 border border-slate-300 rounded-xl font-mono font-bold text-blue-900 outline-none focus:ring-2 focus:ring-blue-500"
+                  />
+                  <div className="mt-1 space-y-1">
+                    <span className="text-[11px] text-slate-500 font-semibold block">Định dạng: {formatVND(tongMucDauTuInput)}</span>
+                    {/* Real-time calculateProjectRouting Badge */}
+                    <div className="p-2.5 bg-emerald-50 border border-emerald-300 rounded-xl text-emerald-950 font-extrabold text-xs flex items-center gap-2 shadow-2xs">
+                      <CheckCircle className="w-4 h-4 text-emerald-600 shrink-0" />
+                      <span>Luồng pháp lý: {projectRoutingResult}</span>
+                    </div>
                   </div>
+                </div>
+
+                <div>
+                  <label className="block text-slate-700 font-bold mb-1">NGUỒN VỐN ĐẦU TƯ</label>
+                  <select
+                    value={nguonVon}
+                    onChange={e => setNguonVon(e.target.value)}
+                    className="w-full px-3 py-2 border border-slate-300 rounded-xl bg-white text-slate-800 font-medium outline-none"
+                  >
+                    <option value="Ngân sách Đầu tư công 2026">Ngân sách Đầu tư công 2026</option>
+                    <option value="Vốn ODA & Vay ưu đãi nước ngoài">Vốn ODA & Vay ưu đãi nước ngoài</option>
+                    <option value="Vốn PPP (Đối tác Công - Tư)">Vốn PPP (Đối tác Công - Tư)</option>
+                    <option value="Vốn Hỗn hợp & Khác">Vốn Hỗn hợp & Khác</option>
+                  </select>
                 </div>
               </div>
 
               <div>
-                <label className="block text-slate-700 font-bold mb-1">NGUỒN VỐN ĐẦU TƯ</label>
-                <select
-                  value={nguonVon}
-                  onChange={e => setNguonVon(e.target.value)}
-                  className="w-full px-3 py-2 border border-slate-300 rounded-xl bg-white text-slate-800 font-medium outline-none"
+                <label className="block text-slate-700 font-bold mb-1">CHỦ ĐẦU TƯ / ĐẠI DIỆN CHỦ ĐẦU TƯ</label>
+                <input
+                  type="text"
+                  value={chuDauTu}
+                  onChange={e => setChuDauTu(e.target.value)}
+                  className="w-full px-3 py-2 border border-slate-300 rounded-xl text-slate-800 outline-none"
+                />
+              </div>
+
+              {/* Checkbox đặc thù */}
+              <div className="grid grid-cols-1 sm:grid-cols-2 gap-3 pt-2">
+                <label className="flex items-center gap-2 cursor-pointer bg-slate-50 p-2.5 rounded-xl border border-slate-200 hover:bg-slate-100">
+                  <input
+                    type="checkbox"
+                    checked={isSpecial}
+                    onChange={e => setIsSpecial(e.target.checked)}
+                    className="w-4 h-4 text-blue-600 rounded"
+                  />
+                  <span className="font-semibold text-slate-800">Công trình Hạ tầng Kỹ thuật Quốc gia Cấp Đặc biệt</span>
+                </label>
+
+                <label className="flex items-center gap-2 cursor-pointer bg-slate-50 p-2.5 rounded-xl border border-slate-200 hover:bg-slate-100">
+                  <input
+                    type="checkbox"
+                    checked={isSimpleRenovation}
+                    onChange={e => setIsSimpleRenovation(e.target.checked)}
+                    className="w-4 h-4 text-blue-600 rounded"
+                  />
+                  <span className="font-semibold text-slate-800">Công trình cải tạo, sửa chữa quy mô nhỏ (Trường hợp BCKTKT thu gọn)</span>
+                </label>
+              </div>
+
+              {/* SmartCA token field */}
+              <div className="pt-2 flex flex-col sm:flex-row justify-between items-start sm:items-center gap-3">
+                <div className="flex items-center gap-1.5 text-[11px] text-emerald-700 font-semibold">
+                  <ShieldCheck className="w-4 h-4" /> Tích hợp Xác thực Chữ ký số SmartCA
+                </div>
+
+                <button
+                  onClick={handleInitiateProject}
+                  className="w-full sm:w-auto bg-blue-600 hover:bg-blue-700 text-white font-bold px-6 py-2.5 rounded-xl transition-all shadow-md flex items-center justify-center gap-2"
                 >
-                  <option value="Ngân sách Đầu tư công 2026">Ngân sách Đầu tư công 2026</option>
-                  <option value="Vốn ODA & Vay ưu đãi nước ngoài">Vốn ODA & Vay ưu đãi nước ngoài</option>
-                  <option value="Vốn PPP (Đối tác Công - Tư)">Vốn PPP (Đối tác Công - Tư)</option>
-                  <option value="Vốn Hỗn hợp & Khác">Vốn Hỗn hợp & Khác</option>
-                </select>
+                  <Sparkles className="w-4 h-4" /> Khởi Tạo & Ký Phê Duyệt Dự Án
+                </button>
               </div>
             </div>
-
-            <div>
-              <label className="block text-slate-700 font-bold mb-1">CHỦ ĐẦU TƯ / ĐẠI DIỆN CHỦ ĐẦU TƯ</label>
-              <input
-                type="text"
-                value={chuDauTu}
-                onChange={e => setChuDauTu(e.target.value)}
-                className="w-full px-3 py-2 border border-slate-300 rounded-xl text-slate-800 outline-none"
-              />
-            </div>
-
-            {/* Checkbox đặc thù */}
-            <div className="grid grid-cols-1 sm:grid-cols-2 gap-3 pt-2">
-              <label className="flex items-center gap-2 cursor-pointer bg-slate-50 p-2.5 rounded-xl border border-slate-200 hover:bg-slate-100">
-                <input
-                  type="checkbox"
-                  checked={isSpecial}
-                  onChange={e => setIsSpecial(e.target.checked)}
-                  className="w-4 h-4 text-blue-600 rounded"
-                />
-                <span className="font-semibold text-slate-800">Công trình Hạ tầng Kỹ thuật Quốc gia Cấp Đặc biệt</span>
-              </label>
-
-              <label className="flex items-center gap-2 cursor-pointer bg-slate-50 p-2.5 rounded-xl border border-slate-200 hover:bg-slate-100">
-                <input
-                  type="checkbox"
-                  checked={isSimpleRenovation}
-                  onChange={e => setIsSimpleRenovation(e.target.checked)}
-                  className="w-4 h-4 text-blue-600 rounded"
-                />
-                <span className="font-semibold text-slate-800">Công trình cải tạo, sửa chữa quy mô nhỏ (Trường hợp BCKTKT thu gọn)</span>
-              </label>
-            </div>
-
-            {/* SmartCA token field */}
-            <div className="pt-2 flex flex-col sm:flex-row justify-between items-start sm:items-center gap-3">
-              <div className="flex items-center gap-1.5 text-[11px] text-emerald-700 font-semibold">
-                <ShieldCheck className="w-4 h-4" /> Tích hợp Xác thực Chữ ký số SmartCA
-              </div>
-
-              <button
-                onClick={handleInitiateProject}
-                className="w-full sm:w-auto bg-blue-600 hover:bg-blue-700 text-white font-bold px-6 py-2.5 rounded-xl transition-all shadow-md flex items-center justify-center gap-2"
-              >
-                <Sparkles className="w-4 h-4" /> Khởi Tạo & Ký Phê Duyệt Dự Án
-              </button>
-            </div>
-          </div>
+          )}
         </div>
 
         {/* Dynamic Auto-Routing Engine Card */}

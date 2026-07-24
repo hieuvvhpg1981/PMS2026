@@ -1,6 +1,7 @@
 import React, { useState, useEffect } from 'react';
 import { PmsService, ProjectData } from '../pms/T2_Services';
-import { formatVND, formatCompactVND, formatDateVN } from '../pms/T1_Utils';
+import { formatVND, formatCompactVND, formatDateVN, filterVisibleProjects } from '../pms/T1_Utils';
+import { UserProfile } from '../pms/T2_Services';
 import { PMS_CONFIG } from '../pms/T0_Config';
 import {
   TrendingUp,
@@ -16,12 +17,20 @@ import {
   ArrowUpRight
 } from 'lucide-react';
 
-export default function PmsDashboardView({ onSelectProject }: { onSelectProject: (projectId: string) => void }) {
+export default function PmsDashboardView({
+  currentUser,
+  onSelectProject
+}: {
+  currentUser?: UserProfile | null;
+  onSelectProject: (projectId: string) => void;
+}) {
   const [projects, setProjects] = useState<ProjectData[]>([]);
 
   useEffect(() => {
-    setProjects(PmsService.getProjects());
-  }, []);
+    const rawList = PmsService.getProjects();
+    const visibleList = filterVisibleProjects(rawList, currentUser);
+    setProjects(visibleList);
+  }, [currentUser]);
 
   const totalProjects = projects.length;
   const totalInvestment = projects.reduce((acc, p) => acc + (Number(p.TONG_MUC_DAU_TU) || 0), 0);
