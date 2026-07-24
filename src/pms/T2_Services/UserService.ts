@@ -125,6 +125,9 @@ export const UserService = {
         id: found.id,
         name: found.fullName || matchedProfile.name,
         role: found.role,
+        assignedProjectIds: found.assignedProjectIds && found.assignedProjectIds.length > 0
+          ? found.assignedProjectIds
+          : (found.role === 'ADMIN' ? ['ALL'] : ['ALL']),
         exp: simulatedExp
       },
       message: 'Đăng nhập thành công!'

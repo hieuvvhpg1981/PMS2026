@@ -538,10 +538,21 @@ export const filterPaymentsByPackage = (
 export function canUserAccessProject(
   project: any,
   currentUserEmail?: string,
-  userRole: string = 'PROJECT_MANAGER'
+  userRole: string = 'PROJECT_MANAGER',
+  assignedProjectIds?: string[]
 ): boolean {
   if (!project) return false;
   if (userRole === 'ADMIN') return true; // ADMIN có quyền truy cập tất cả dự án trong hệ thống
+
+  const pId = project.PROJECT_ID || project.id || project.projectId;
+
+  // 1. Kiểm tra mảng phân quyền assignedProjectIds (từ khóa 'ALL' hoặc ID dự án)
+  if (assignedProjectIds && Array.isArray(assignedProjectIds) && assignedProjectIds.length > 0) {
+    if (assignedProjectIds.includes('ALL')) return true;
+    if (pId && assignedProjectIds.includes(pId)) return true;
+  }
+
+  // 2. Kiểm tra bổ sung qua Email (Owner / Assigned)
   if (!currentUserEmail) return false;
 
   const email = currentUserEmail.toLowerCase().trim();
@@ -555,15 +566,16 @@ export function canUserAccessProject(
 }
 
 /**
- * LỌC DANH SÁCH DỰ ÁN MÀ USER CÓ QUYỀN TRUY CẬP (HEADER DROPDOWN)
+ * LỌC DANH SÁCH DỰ ÁN MÀ USER CÓ QUYỀN TRUY CẬP (HEADER DROPDOWN & VIEWS)
  */
 export function filterProjectsForUser(
   projects: any[],
   currentUserEmail?: string,
-  userRole: string = 'PROJECT_MANAGER'
+  userRole: string = 'PROJECT_MANAGER',
+  assignedProjectIds?: string[]
 ): any[] {
   if (!projects) return [];
-  return projects.filter(p => canUserAccessProject(p, currentUserEmail, userRole));
+  return projects.filter(p => canUserAccessProject(p, currentUserEmail, userRole, assignedProjectIds));
 }
 
 /**

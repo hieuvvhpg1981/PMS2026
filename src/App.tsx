@@ -132,13 +132,13 @@ export default function App() {
     );
   }
 
-  // Filter projects by current user RBAC permissions
-  const accessibleProjects = filterProjectsForUser(projects, currentUser.email, currentUser.role);
+  // Filter projects by current user RBAC permissions & assignedProjectIds
+  const accessibleProjects = filterProjectsForUser(projects, currentUser.email, currentUser.role, currentUser.assignedProjectIds);
   const selectedProject = projects.find(p => p.PROJECT_ID === globalProjectId) || projects[0];
 
   const hasAccessToSelectedProject = globalProjectId === 'ALL_PROJECTS'
     ? true
-    : canUserAccessProject(selectedProject, currentUser.email, currentUser.role);
+    : canUserAccessProject(selectedProject, currentUser.email, currentUser.role, currentUser.assignedProjectIds);
 
   const isStageTab = activeTab.startsWith('stage');
   const currentStageNum = isStageTab ? (parseInt(activeTab.replace('stage', ''), 10) || 1) : 1;
