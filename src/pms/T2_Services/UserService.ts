@@ -11,9 +11,13 @@ const USERS_COLLECTION = 'users';
 export const UserService = {
   /**
    * Fetch all user accounts from Firebase Firestore collection 'users'.
-   * If collection is empty, auto-seeds INITIAL_USERS to Firestore as master seed data.
+   * HARD SECURITY GUARD: Only users with 'ADMIN' role are permitted to pull user accounts.
    */
-  async fetchUsersFromFirestore(): Promise<UserAccount[]> {
+  async fetchUsersFromFirestore(requestorRole?: string): Promise<UserAccount[]> {
+    if (requestorRole && requestorRole !== 'ADMIN') {
+      console.warn('🔒 [SECURITY GUARD HARD BLOCK] Non-Admin user requested user accounts list. Access blocked!');
+      return [];
+    }
     try {
       const colRef = collection(db, USERS_COLLECTION);
       const snapshot = await getDocs(colRef);

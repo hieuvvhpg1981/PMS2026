@@ -93,45 +93,6 @@ export const UserAuthBar: React.FC<UserAuthBarProps> = ({
               </div>
             </div>
 
-            {/* TEST USER SWITCHER FOR DEMO */}
-            <div className="space-y-1.5">
-              <div className="text-[10px] uppercase font-black tracking-wider text-slate-400 px-2 flex items-center gap-1">
-                <Sparkles className="w-3 h-3 text-amber-500" /> Chuyển Đổi Tài Khoản Test RBAC Real-time:
-              </div>
-
-              <div className="space-y-1">
-                {AVAILABLE_TEST_USERS.map(user => {
-                  const isSelected = user.email === currentUser.email;
-
-                  return (
-                    <button
-                      key={user.email}
-                      onClick={() => {
-                        onUserSwitch(user);
-                        setIsOpenMenu(false);
-                        toast.info(`Đã chuyển đổi sang tài khoản: ${user.name} (${user.role})`);
-                      }}
-                      className={`w-full p-2 rounded-xl text-left transition-all flex items-center justify-between gap-2 border ${
-                        isSelected
-                          ? 'bg-blue-50/80 border-blue-300 text-blue-900 font-bold'
-                          : 'hover:bg-slate-50 border-transparent text-slate-700'
-                      }`}
-                    >
-                      <div className="flex items-center gap-2.5 min-w-0">
-                        <img src={user.avatarUrl} alt={user.name} className="w-7 h-7 rounded-full object-cover shrink-0" />
-                        <div className="truncate">
-                          <div className="text-xs font-bold truncate leading-snug">{user.name}</div>
-                          <div className="text-[10px] font-mono text-slate-500 truncate">{user.email} ({user.role})</div>
-                        </div>
-                      </div>
-
-                      {isSelected && <Check size={16} className="text-blue-600 shrink-0" />}
-                    </button>
-                  );
-                })}
-              </div>
-            </div>
-
             {/* LOGOUT BUTTON */}
             {onLogout && (
               <div className="pt-2 border-t border-slate-100">

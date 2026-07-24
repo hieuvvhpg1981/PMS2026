@@ -41,7 +41,10 @@ export const AdminSettingsDrawer: React.FC<AdminSettingsDrawerProps> = ({
   currentUser,
   onRefreshProjects
 }) => {
-  if (!isOpen) return null;
+  // HARD SECURITY GUARD: STRICTLY FOR ADMIN ROLE ONLY!
+  if (!isOpen || !currentUser || currentUser.role !== 'ADMIN') {
+    return null;
+  }
 
   const [activeTab, setActiveTab] = useState<'STORAGE' | 'USERS'>('STORAGE');
 
@@ -83,7 +86,7 @@ export const AdminSettingsDrawer: React.FC<AdminSettingsDrawerProps> = ({
   const loadFirestoreAccounts = async () => {
     setIsLoadingAccounts(true);
     try {
-      const users = await UserService.fetchUsersFromFirestore();
+      const users = await UserService.fetchUsersFromFirestore(currentUser.role);
       setAccountsList(users);
     } catch (err) {
       console.error('Lỗi nạp danh sách tài khoản Firestore:', err);
@@ -95,7 +98,7 @@ export const AdminSettingsDrawer: React.FC<AdminSettingsDrawerProps> = ({
   const refreshAccountsList = async () => {
     setCloudSyncing(true);
     try {
-      const users = await UserService.fetchUsersFromFirestore();
+      const users = await UserService.fetchUsersFromFirestore(currentUser.role);
       setAccountsList(users);
       if (onRefreshProjects) onRefreshProjects();
     } finally {

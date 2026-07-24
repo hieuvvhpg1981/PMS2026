@@ -366,13 +366,15 @@ export default function App() {
               />
             )}
 
-            {/* ADMIN SYSTEM SETTINGS DRAWER MODAL */}
-            <AdminSettingsDrawer
-              isOpen={isAdminSettingsOpen}
-              onClose={() => setIsAdminSettingsOpen(false)}
-              currentUser={currentUser}
-              onRefreshProjects={refreshProjectsList}
-            />
+            {/* ADMIN SYSTEM SETTINGS DRAWER MODAL (STRICT ADMIN GUARD) */}
+            {currentUser?.role === 'ADMIN' && (
+              <AdminSettingsDrawer
+                isOpen={isAdminSettingsOpen}
+                onClose={() => setIsAdminSettingsOpen(false)}
+                currentUser={currentUser}
+                onRefreshProjects={refreshProjectsList}
+              />
+            )}
           </div>
         </div>
     </ErrorBoundary>
