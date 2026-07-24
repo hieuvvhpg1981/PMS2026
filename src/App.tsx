@@ -76,7 +76,15 @@ export default function App() {
 
   // Active Authenticated User & Session state with strict Auth Guard (strictly null if no session)
   const [currentUser, setCurrentUser] = useState<UserProfile | null>(() => {
-    return PmsService.getStoredAuthUser();
+    if (typeof localStorage === 'undefined') return null;
+    const savedSession = localStorage.getItem('PMS_SESSION_USER') || localStorage.getItem('PMS_2026_AUTH_USER_KEY');
+    if (!savedSession) return null;
+    try {
+      const user = JSON.parse(savedSession);
+      return (user && user.email) ? user : null;
+    } catch {
+      return null;
+    }
   });
   const [isPermissionModalOpen, setIsPermissionModalOpen] = useState(false);
   const [isAdminSettingsOpen, setIsAdminSettingsOpen] = useState(false);
@@ -99,11 +107,17 @@ export default function App() {
   };
 
   const handleLoginSuccess = (user: UserProfile) => {
+    if (typeof localStorage !== 'undefined') {
+      localStorage.setItem('PMS_SESSION_USER', JSON.stringify(user));
+    }
     PmsService.setStoredAuthUser(user);
     setCurrentUser(user);
   };
 
   const handleLogout = () => {
+    if (typeof localStorage !== 'undefined') {
+      localStorage.removeItem('PMS_SESSION_USER');
+    }
     PmsService.clearStoredAuthUser();
     setCurrentUser(null);
   };
