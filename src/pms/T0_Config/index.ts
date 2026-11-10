@@ -408,3 +408,206 @@ export const EXCEL_HANDOVER_COLUMNS = [
   'NGÀY BÀN GIAO',
   'TRẠNG THÁI'
 ];
+
+export interface MasterWorkflowTemplateConfig {
+  templateId: string;
+  stepOrder: number;
+  stageId: 1 | 2 | 3 | 4 | 5;
+  stageName: string;
+  stepCode: string;
+  templateName: string;
+  formCode: string;
+  legalBasis: string;
+  templateFileFormat: 'DOCX' | 'XLSX';
+  allowedUploadExtensions: string[];
+  version: string;
+  updatedByAdmin: string;
+  updatedAt: string;
+  requiresDigitalSignature: boolean;
+  requiresCertifiedCopy: boolean;
+  description: string;
+}
+
+export const MASTER_WORKFLOW_TEMPLATES_2026: MasterWorkflowTemplateConfig[] = [
+  {
+    templateId: 'TPL-GDA1-01',
+    stepOrder: 1,
+    stageId: 1,
+    stageName: 'Giai đoạn 1: Khởi tạo dự án',
+    stepCode: 'BƯỚC 1.1',
+    templateName: 'Biểu mẫu điện tử tương tác thu thập dữ liệu dự án đầu tư xây dựng',
+    formCode: 'BM-01/CSDL-212',
+    legalBasis: 'Nghị định 212/2026/NĐ-CP & Thông tư 39/2026/TT-BXD',
+    templateFileFormat: 'XLSX',
+    allowedUploadExtensions: ['.xlsx', '.pdf', '.sig'],
+    version: 'v2.0 (2026)',
+    updatedByAdmin: 'admin@pms2026.gov.vn',
+    updatedAt: '2026-07-01 08:30',
+    requiresDigitalSignature: true,
+    requiresCertifiedCopy: false,
+    description: 'Thu thập chuẩn hóa thông tin định danh dự án, quy mô, cấp công trình, nguồn vốn để cấp Mã số dự án Quốc gia.'
+  },
+  {
+    templateId: 'TPL-GDA1-02',
+    stepOrder: 2,
+    stageId: 1,
+    stageName: 'Giai đoạn 1: Khởi tạo dự án',
+    stepCode: 'BƯỚC 1.2',
+    templateName: 'Báo cáo kết quả thẩm định Báo cáo nghiên cứu khả thi / BCKTKT (Mẫu số 04)',
+    formCode: 'MẪU SỐ 04 - NĐ 217/2026',
+    legalBasis: 'Nghị định 217/2026/NĐ-CP (Phụ lục I - Mẫu số 04)',
+    templateFileFormat: 'DOCX',
+    allowedUploadExtensions: ['.pdf', '.docx', '.sig'],
+    version: 'v2.1 (2026)',
+    updatedByAdmin: 'admin@pms2026.gov.vn',
+    updatedAt: '2026-07-05 09:15',
+    requiresDigitalSignature: true,
+    requiresCertifiedCopy: true,
+    description: 'Văn bản thông báo kết quả thẩm định của Cơ quan chuyên môn về xây dựng trước khi phê duyệt dự án.'
+  },
+  {
+    templateId: 'TPL-GDA2-01',
+    stepOrder: 3,
+    stageId: 2,
+    stageName: 'Giai đoạn 2: Kế hoạch, Thiết kế, Dự toán',
+    stepCode: 'BƯỚC 2.1',
+    templateName: 'Biểu mẫu Excel nhập dữ liệu Công bố giá VLXD & Bảng tính Dự toán xây dựng',
+    formCode: 'BM-DT-TT36/2026',
+    legalBasis: 'Thông tư 36/2026/TT-BXD & Nghị định 206/2026/NĐ-CP',
+    templateFileFormat: 'XLSX',
+    allowedUploadExtensions: ['.xlsx', '.pdf', '.sig'],
+    version: 'v1.4 (2026)',
+    updatedByAdmin: 'admin@pms2026.gov.vn',
+    updatedAt: '2026-07-10 14:00',
+    requiresDigitalSignature: true,
+    requiresCertifiedCopy: false,
+    description: 'Biểu mẫu chuẩn hóa dữ liệu giá vật liệu, nhân công, ca máy theo công bố giá địa phương và tổng hợp 7 khoản mục dự toán.'
+  },
+  {
+    templateId: 'TPL-GDA2-02',
+    stepOrder: 4,
+    stageId: 2,
+    stageName: 'Giai đoạn 2: Kế hoạch, Thiết kế, Dự toán',
+    stepCode: 'BƯỚC 2.2',
+    templateName: 'Hồ sơ Bản vẽ Thiết kế triển khai sau TKCS & Mô hình BIM đã đóng dấu thẩm định',
+    formCode: 'HS-BVTC-BIM/217',
+    legalBasis: 'Nghị định 217/2026/NĐ-CP & Thông tư 36/2026/TT-BXD',
+    templateFileFormat: 'DOCX',
+    allowedUploadExtensions: ['.pdf', '.cad', '.dwg', '.ifc', '.bim', '.rvt'],
+    version: 'v1.2 (2026)',
+    updatedByAdmin: 'admin@pms2026.gov.vn',
+    updatedAt: '2026-07-12 11:20',
+    requiresDigitalSignature: true,
+    requiresCertifiedCopy: true,
+    description: 'Bắt buộc đính kèm hồ sơ bản vẽ (.pdf, .cad/.dwg, .bim/.ifc) đã được đóng dấu thẩm định và ký số xác thực.'
+  },
+  {
+    templateId: 'TPL-GDA3-01',
+    stepOrder: 5,
+    stageId: 3,
+    stageName: 'Giai đoạn 3: Đấu thầu & Ký kết hợp đồng',
+    stepCode: 'BƯỚC 3.1',
+    templateName: 'Mẫu Hợp đồng Tư vấn Quản lý dự án đầu tư xây dựng (Phụ lục III)',
+    formCode: 'PHỤ LỤC III - QĐ 1040/QĐ-BXD',
+    legalBasis: 'Quyết định 1040/QĐ-BXD & Nghị định 210/2026/NĐ-CP',
+    templateFileFormat: 'DOCX',
+    allowedUploadExtensions: ['.pdf', '.docx', '.sig'],
+    version: 'v1.0 (2026)',
+    updatedByAdmin: 'admin@pms2026.gov.vn',
+    updatedAt: '2026-07-15 10:00',
+    requiresDigitalSignature: true,
+    requiresCertifiedCopy: true,
+    description: 'Biểu mẫu Hợp đồng Tư vấn QLDA tích hợp sẵn điều khoản tạm ứng, thanh toán và trách nhiệm pháp lý theo QĐ 1040/QĐ-BXD.'
+  },
+  {
+    templateId: 'TPL-GDA3-02',
+    stepOrder: 6,
+    stageId: 3,
+    stageName: 'Giai đoạn 3: Đấu thầu & Ký kết hợp đồng',
+    stepCode: 'BƯỚC 3.2',
+    templateName: 'Mẫu Hợp đồng Thi công xây dựng công trình (Phụ lục VI)',
+    formCode: 'PHỤ LỤC VI - QĐ 1040/QĐ-BXD',
+    legalBasis: 'Quyết định 1040/QĐ-BXD & Nghị định 210/2026/NĐ-CP',
+    templateFileFormat: 'DOCX',
+    allowedUploadExtensions: ['.pdf', '.docx', '.sig'],
+    version: 'v1.5 (2026)',
+    updatedByAdmin: 'admin@pms2026.gov.vn',
+    updatedAt: '2026-07-18 16:45',
+    requiresDigitalSignature: true,
+    requiresCertifiedCopy: true,
+    description: 'Biểu mẫu Hợp đồng Thi công xây dựng tích hợp công thức điều chỉnh giá Pn, bảo lãnh thực hiện HĐ và thu hồi tạm ứng.'
+  },
+  {
+    templateId: 'TPL-GDA4-01',
+    stepOrder: 7,
+    stageId: 4,
+    stageName: 'Giai đoạn 4: Thi công, Giám sát, Thanh toán',
+    stepCode: 'BƯỚC 4.1',
+    templateName: 'Biểu mẫu trình chấp thuận Biện pháp thi công, Kế hoạch kiểm tra & An toàn lao động',
+    formCode: 'BM-BPTC-AT/207',
+    legalBasis: 'Nghị định 207/2026/NĐ-CP & Nghị định 209/2026/NĐ-CP',
+    templateFileFormat: 'DOCX',
+    allowedUploadExtensions: ['.pdf', '.docx', '.xlsx'],
+    version: 'v1.3 (2026)',
+    updatedByAdmin: 'admin@pms2026.gov.vn',
+    updatedAt: '2026-07-20 09:00',
+    requiresDigitalSignature: true,
+    requiresCertifiedCopy: false,
+    description: 'Hồ sơ trình Chủ đầu tư / TVGS phê duyệt biện pháp thi công, kế hoạch thí nghiệm kiểm tra chất lượng và an toàn lao động.'
+  },
+  {
+    templateId: 'TPL-GDA4-02',
+    stepOrder: 8,
+    stageId: 4,
+    stageName: 'Giai đoạn 4: Thi công, Giám sát, Thanh toán',
+    stepCode: 'BƯỚC 4.2',
+    templateName: 'Biểu mẫu Báo cáo chất lượng thi công & Báo cáo sự cố công trình xây dựng',
+    formCode: 'BM-BCSC-207/2026',
+    legalBasis: 'Nghị định 207/2026/NĐ-CP (Quản lý chất lượng & Sự cố công trình)',
+    templateFileFormat: 'DOCX',
+    allowedUploadExtensions: ['.pdf', '.docx', '.sig'],
+    version: 'v1.1 (2026)',
+    updatedByAdmin: 'admin@pms2026.gov.vn',
+    updatedAt: '2026-07-22 15:30',
+    requiresDigitalSignature: true,
+    requiresCertifiedCopy: true,
+    description: 'Biểu mẫu báo cáo định kỳ công tác giám sát chất lượng hiện trường và biên bản báo cáo nhanh sự cố công trình (nếu có).'
+  },
+  {
+    templateId: 'TPL-GDA5-01',
+    stepOrder: 9,
+    stageId: 5,
+    stageName: 'Giai đoạn 5: Đóng dự án, Quyết toán',
+    stepCode: 'BƯỚC 5.1',
+    templateName: 'Danh mục Tập hợp Hồ sơ hoàn thành công trình (Bản vẽ hoàn công & Biên bản nghiệm thu)',
+    formCode: 'PL-VIb - NĐ 207/2026',
+    legalBasis: 'Nghị định 207/2026/NĐ-CP & Thông tư 40/2026/TT-BXD',
+    templateFileFormat: 'XLSX',
+    allowedUploadExtensions: ['.pdf', '.dwg', '.cad', '.zip', '.xlsx'],
+    version: 'v1.2 (2026)',
+    updatedByAdmin: 'admin@pms2026.gov.vn',
+    updatedAt: '2026-07-25 11:00',
+    requiresDigitalSignature: true,
+    requiresCertifiedCopy: true,
+    description: 'Tập hợp bản vẽ hoàn công định dạng số, biên bản nghiệm thu hoàn thành hạng mục/công trình và văn bản chấp thuận của Cơ quan chuyên môn.'
+  },
+  {
+    templateId: 'TPL-GDA5-02',
+    stepOrder: 10,
+    stageId: 5,
+    stageName: 'Giai đoạn 5: Đóng dự án, Quyết toán',
+    stepCode: 'BƯỚC 5.2',
+    templateName: 'Báo cáo tổng hợp Quyết toán vốn đầu tư dự án hoàn thành (Mẫu số 01/QTDA)',
+    formCode: 'MẪU SỐ 01/QTDA - NĐ 193/2026',
+    legalBasis: 'Nghị định 193/2026/NĐ-CP quy định về quyết toán vốn đầu tư dự án',
+    templateFileFormat: 'XLSX',
+    allowedUploadExtensions: ['.xlsx', '.pdf', '.sig'],
+    version: 'v2.0 (2026)',
+    updatedByAdmin: 'admin@pms2026.gov.vn',
+    updatedAt: '2026-07-28 17:00',
+    requiresDigitalSignature: true,
+    requiresCertifiedCopy: true,
+    description: 'Biểu mẫu tổng hợp giá trị quyết toán vốn đầu tư công trình hoàn thành trình cơ quan thẩm tra phê duyệt quyết toán.'
+  }
+];
+

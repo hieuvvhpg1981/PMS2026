@@ -5,10 +5,45 @@
 
 export * from './UserService';
 
-import { PMS_CONFIG, ProjectGroup, ConstructionGrade, ContractType, DesignType, ApprovalStatus, ProcurementMethod, GpmbStatus, PackageType, SystemSettings, DEFAULT_SYSTEM_SETTINGS, INITIAL_USERS, UserAccount } from '../T0_Config';
-import { safeNumber, safeString, checkEstimateExceedsTMDT, calculateBiddingSavings, validatePackageDisbursement } from '../T1_Utils';
+import { PMS_CONFIG, ProjectGroup, ConstructionGrade, ContractType, DesignType, ApprovalStatus, ProcurementMethod, GpmbStatus, PackageType, SystemSettings, DEFAULT_SYSTEM_SETTINGS, INITIAL_USERS, UserAccount, MASTER_WORKFLOW_TEMPLATES_2026, MasterWorkflowTemplateConfig } from '../T0_Config';
+import { safeNumber, safeString, checkEstimateExceedsTMDT, calculateBiddingSavings, validatePackageDisbursement, evaluateSequentialWorkflowLock, verifyElectronicCertifiedFile } from '../T1_Utils';
 
 // --- DATA SCHEMAS & INTERFACES ---
+
+export interface WorkflowStepSubmissionRecord {
+  submissionId: string;
+  projectId: string;
+  templateId: string;
+  stepOrder: number;
+  uploadedFileName: string;
+  fileSizeMB: number;
+  templateVersionUsed: string;
+  digitalSignatureVerified: boolean;
+  signerCertificateId: string;
+  certifiedCopyVerified: boolean;
+  sha256Hash: string;
+  uploadedByEmail: string;
+  uploadedByName: string;
+  uploadedAt: string;
+  status: 'COMPLETED_SIGNED' | 'REJECTED';
+}
+
+export interface WorkflowAuditLogRecord {
+  auditId: string;
+  timestamp: string;
+  projectId: string;
+  templateId: string;
+  stepCode: string;
+  actionType: 'DOWNLOAD_MASTER_TEMPLATE' | 'UPLOAD_SIGNED_SUBMISSION' | 'ADMIN_UPDATE_MASTER_TEMPLATE' | 'BLOCKER_REJECTED';
+  actorEmail: string;
+  actorName: string;
+  actorRole: string;
+  organizationCode: string;
+  fileName: string;
+  versionTag: string;
+  digitalSignatureInfo: string;
+  details: string;
+}
 
 export interface Stage1DocumentRecord {
   docId: string;
@@ -1406,6 +1441,397 @@ III. GIÁ HỢP ĐỒNG, TẠM ỨNG, BẢO LÃNH & THANH TOÁN (NĐ 210/2026/N�
 
 ĐẠI DIỆN BÊN GIAO THẦU                          ĐẠI DIỆN BÊN NHẬN THẦU
 (Đã ký số SmartCA - Ban QLDA)                   (Đã ký số SmartCA - Nhà thầu)`;
+  },
+
+  /**
+   * KHO BIỂU MẪU GỐC (MASTER TEMPLATES - CHỈ ADMIN ĐƯỢC CẬP NHẬT VERSION)
+   */
+  getMasterTemplates(): MasterWorkflowTemplateConfig[] {
+    if (typeof localStorage === 'undefined') {
+      return MASTER_WORKFLOW_TEMPLATES_2026;
+    }
+    const raw = localStorage.getItem('PMS_2026_MASTER_TEMPLATES_KEY');
+    if (!raw) {
+      localStorage.setItem('PMS_2026_MASTER_TEMPLATES_KEY', JSON.stringify(MASTER_WORKFLOW_TEMPLATES_2026));
+      return MASTER_WORKFLOW_TEMPLATES_2026;
+    }
+    try {
+      return JSON.parse(raw);
+    } catch {
+      return MASTER_WORKFLOW_TEMPLATES_2026;
+    }
+  },
+
+  updateMasterTemplateByAdmin(
+    templateId: string,
+    newVersion: string,
+    newLegalBasis: string,
+    newDescription: string,
+    actorEmail: string,
+    actorName: string,
+    actorRole: string
+  ): { success: boolean; message: string; updatedTemplate?: MasterWorkflowTemplateConfig } {
+    if (actorRole !== 'ADMIN') {
+      return {
+        success: false,
+        message: 'CHẶN PHÂN QUYỀN (RBAC): Chỉ Quản trị viên (ADMIN) mới có quyền tải lên, cập nhật hoặc thay thế Kho biểu mẫu gốc!'
+      };
+    }
+
+    const list = this.getMasterTemplates();
+    const idx = list.findIndex(t => t.templateId === templateId);
+    if (idx < 0) {
+      return { success: false, message: `Không tìm thấy biểu mẫu gốc [${templateId}]` };
+    }
+
+    const nowStr = new Date().toISOString().replace('T', ' ').substring(0, 16);
+    const updatedTpl: MasterWorkflowTemplateConfig = {
+      ...list[idx],
+      version: safeString(newVersion) || list[idx].version,
+      legalBasis: safeString(newLegalBasis) || list[idx].legalBasis,
+      description: safeString(newDescription) || list[idx].description,
+      updatedByAdmin: safeString(actorEmail),
+      updatedAt: nowStr
+    };
+
+    list[idx] = updatedTpl;
+    if (typeof localStorage !== 'undefined') {
+      localStorage.setItem('PMS_2026_MASTER_TEMPLATES_KEY', JSON.stringify(list));
+    }
+
+    this.appendWorkflowAuditLog({
+      auditId: `AUD-${Date.now()}-${Math.floor(Math.random() * 1000)}`,
+      timestamp: nowStr,
+      projectId: 'MASTER_REPO',
+      templateId: updatedTpl.templateId,
+      stepCode: updatedTpl.stepCode,
+      actionType: 'ADMIN_UPDATE_MASTER_TEMPLATE',
+      actorEmail: safeString(actorEmail),
+      actorName: safeString(actorName),
+      actorRole: safeString(actorRole),
+      organizationCode: 'BXD-ADMIN-CENTER',
+      fileName: `${updatedTpl.formCode}.${updatedTpl.templateFileFormat.toLowerCase()}`,
+      versionTag: updatedTpl.version,
+      digitalSignatureInfo: 'SmartCA-Admin-Root-Verified',
+      details: `Admin cập nhật biểu mẫu gốc [${updatedTpl.templateName}] lên phiên bản ${updatedTpl.version} (${updatedTpl.legalBasis})`
+    });
+
+    return {
+      success: true,
+      message: `Đã cập nhật biểu mẫu gốc [${updatedTpl.formCode}] lên phiên bản ${updatedTpl.version}!`,
+      updatedTemplate: updatedTpl
+    };
+  },
+
+  /**
+   * LẤY DANH SÁCH HỒ SƠ ĐÃ NỘP THEO TỪNG BƯỚC QUY TRÌNH CỦA DỰ ÁN
+   */
+  getProjectWorkflowSubmissions(projectId: string): WorkflowStepSubmissionRecord[] {
+    const pId = safeString(projectId, 'DA-2026-001');
+    const defaultSeed: WorkflowStepSubmissionRecord[] = [
+      {
+        submissionId: 'SUB-2026-001',
+        projectId: 'DA-2026-001',
+        templateId: 'TPL-GDA1-01',
+        stepOrder: 1,
+        uploadedFileName: 'BM01_ThuThapDuLieu_DA_CauNhatLe3_Signed.xlsx',
+        fileSizeMB: 1.8,
+        templateVersionUsed: 'v2.0 (2026)',
+        digitalSignatureVerified: true,
+        signerCertificateId: 'VNPT-CA-0100105616 (Ban QLDA ĐTXD)',
+        certifiedCopyVerified: true,
+        sha256Hash: 'SHA256-002D-98FA21C0-BXD2026',
+        uploadedByEmail: 'hieuvv@company.com',
+        uploadedByName: 'Vũ Văn Hiếu (PM)',
+        uploadedAt: '2026-07-02 09:20',
+        status: 'COMPLETED_SIGNED'
+      },
+      {
+        submissionId: 'SUB-2026-002',
+        projectId: 'DA-2026-001',
+        templateId: 'TPL-GDA1-02',
+        stepOrder: 2,
+        uploadedFileName: 'Mau04_BaoCaoThamDinh_BCNCKT_ND217_Signed.pdf',
+        fileSizeMB: 4.5,
+        templateVersionUsed: 'v2.1 (2026)',
+        digitalSignatureVerified: true,
+        signerCertificateId: 'VGCA-GOV-BXD-2026 (Cục QLHĐXD)',
+        certifiedCopyVerified: true,
+        sha256Hash: 'SHA256-002B-77CE19A4-BXD2026',
+        uploadedByEmail: 'hieuvv@company.com',
+        uploadedByName: 'Vũ Văn Hiếu (PM)',
+        uploadedAt: '2026-07-06 14:15',
+        status: 'COMPLETED_SIGNED'
+      },
+      {
+        submissionId: 'SUB-2026-003',
+        projectId: 'DA-2026-001',
+        templateId: 'TPL-GDA2-01',
+        stepOrder: 3,
+        uploadedFileName: 'BM_CongBoGia_DuToan_TT36_2026_Signed.xlsx',
+        fileSizeMB: 3.2,
+        templateVersionUsed: 'v1.4 (2026)',
+        digitalSignatureVerified: true,
+        signerCertificateId: 'VIETTEL-CA-TEDI-2026',
+        certifiedCopyVerified: false,
+        sha256Hash: 'SHA256-0029-61AB08D2-BXD2026',
+        uploadedByEmail: 'kethoath@company.com',
+        uploadedByName: 'Phạm Thu Hà (Kế Toán)',
+        uploadedAt: '2026-07-11 10:40',
+        status: 'COMPLETED_SIGNED'
+      }
+    ];
+
+    if (typeof localStorage === 'undefined') {
+      return defaultSeed.filter(s => s.projectId === pId);
+    }
+    const raw = localStorage.getItem('PMS_2026_WORKFLOW_SUBMISSIONS_KEY');
+    if (!raw) {
+      localStorage.setItem('PMS_2026_WORKFLOW_SUBMISSIONS_KEY', JSON.stringify(defaultSeed));
+      return defaultSeed.filter(s => s.projectId === pId);
+    }
+    try {
+      const all: WorkflowStepSubmissionRecord[] = JSON.parse(raw);
+      return all.filter(s => s.projectId === pId);
+    } catch {
+      return defaultSeed.filter(s => s.projectId === pId);
+    }
+  },
+
+  /**
+   * UPLOAD FILE HOÀN THIỆN TẠI BƯỚC QUY TRÌNH (CÓ KIỂM TRA CHỐT CHẶN BLOCKER NỐI TIẾP & KÝ SỐ)
+   */
+  submitWorkflowStepFile(
+    projectId: string,
+    templateId: string,
+    fileName: string,
+    fileSizeMB: number,
+    hasDigitalSignature: boolean,
+    hasCertifiedCopy: boolean,
+    signerCertificateId: string,
+    actorEmail: string,
+    actorName: string,
+    actorRole: string
+  ): { success: boolean; message: string; submission?: WorkflowStepSubmissionRecord } {
+    const templates = this.getMasterTemplates();
+    const targetTpl = templates.find(t => t.templateId === templateId);
+    if (!targetTpl) {
+      return { success: false, message: `Không tìm thấy cấu hình bước quy trình [${templateId}]` };
+    }
+
+    const currentSubs = this.getProjectWorkflowSubmissions(projectId);
+    const lockStates = evaluateSequentialWorkflowLock(templates, currentSubs);
+    const stepLock = lockStates.find(l => l.templateId === templateId);
+
+    const nowStr = new Date().toISOString().replace('T', ' ').substring(0, 16);
+
+    if (stepLock && !stepLock.isUnlocked) {
+      this.appendWorkflowAuditLog({
+        auditId: `AUD-${Date.now()}-${Math.floor(Math.random() * 1000)}`,
+        timestamp: nowStr,
+        projectId,
+        templateId,
+        stepCode: targetTpl.stepCode,
+        actionType: 'BLOCKER_REJECTED',
+        actorEmail,
+        actorName,
+        actorRole,
+        organizationCode: 'BAN-QLDA-2026',
+        fileName,
+        versionTag: targetTpl.version,
+        digitalSignatureInfo: 'BLOCKED',
+        details: stepLock.blockerReason
+      });
+      return { success: false, message: stepLock.blockerReason };
+    }
+
+    const fileCheck = verifyElectronicCertifiedFile(
+      fileName,
+      targetTpl.allowedUploadExtensions,
+      hasDigitalSignature,
+      hasCertifiedCopy,
+      targetTpl.requiresDigitalSignature,
+      targetTpl.requiresCertifiedCopy
+    );
+
+    if (!fileCheck.isValid) {
+      this.appendWorkflowAuditLog({
+        auditId: `AUD-${Date.now()}-${Math.floor(Math.random() * 1000)}`,
+        timestamp: nowStr,
+        projectId,
+        templateId,
+        stepCode: targetTpl.stepCode,
+        actionType: 'BLOCKER_REJECTED',
+        actorEmail,
+        actorName,
+        actorRole,
+        organizationCode: 'BAN-QLDA-2026',
+        fileName,
+        versionTag: targetTpl.version,
+        digitalSignatureInfo: 'INVALID_SIGNATURE_OR_EXT',
+        details: fileCheck.message
+      });
+      return { success: false, message: fileCheck.message };
+    }
+
+    const newSub: WorkflowStepSubmissionRecord = {
+      submissionId: `SUB-${Date.now().toString().slice(-5)}`,
+      projectId,
+      templateId,
+      stepOrder: targetTpl.stepOrder,
+      uploadedFileName: safeString(fileName),
+      fileSizeMB: safeNumber(fileSizeMB) || 2.4,
+      templateVersionUsed: targetTpl.version,
+      digitalSignatureVerified: hasDigitalSignature,
+      signerCertificateId: safeString(signerCertificateId, 'VNPT-SMARTCA-2026-VERIFIED'),
+      certifiedCopyVerified: hasCertifiedCopy,
+      sha256Hash: fileCheck.sha256Hash,
+      uploadedByEmail: safeString(actorEmail),
+      uploadedByName: safeString(actorName),
+      uploadedAt: nowStr,
+      status: 'COMPLETED_SIGNED'
+    };
+
+    if (typeof localStorage !== 'undefined') {
+      const raw = localStorage.getItem('PMS_2026_WORKFLOW_SUBMISSIONS_KEY');
+      const all: WorkflowStepSubmissionRecord[] = raw ? JSON.parse(raw) : [];
+      const filtered = all.filter(s => !(s.projectId === projectId && s.templateId === templateId));
+      filtered.push(newSub);
+      localStorage.setItem('PMS_2026_WORKFLOW_SUBMISSIONS_KEY', JSON.stringify(filtered));
+    }
+
+    this.appendWorkflowAuditLog({
+      auditId: `AUD-${Date.now()}-${Math.floor(Math.random() * 1000)}`,
+      timestamp: nowStr,
+      projectId,
+      templateId,
+      stepCode: targetTpl.stepCode,
+      actionType: 'UPLOAD_SIGNED_SUBMISSION',
+      actorEmail,
+      actorName,
+      actorRole,
+      organizationCode: 'BAN-QLDA-2026',
+      fileName: newSub.uploadedFileName,
+      versionTag: newSub.templateVersionUsed,
+      digitalSignatureInfo: `${newSub.signerCertificateId} | ${newSub.sha256Hash}`,
+      details: `Hoàn thành [${targetTpl.stepCode}]: Upload hồ sơ ký số hợp lệ & mở khóa bước tiếp theo.`
+    });
+
+    return {
+      success: true,
+      message: `Đã xác thực Chữ ký số & hoàn thành [${targetTpl.stepCode} - ${targetTpl.templateName}]! Đã tự động mở khóa bước tiếp theo.`,
+      submission: newSub
+    };
+  },
+
+  /**
+   * LƯU VẾT DỮ LIỆU (AUDIT TRAIL) CHO MỌI THAO TÁC TẢI XUỐNG / UPLOAD / CẬP NHẬT BIỂU MẪU
+   */
+  getWorkflowAuditLogs(projectId?: string): WorkflowAuditLogRecord[] {
+    const defaultLogs: WorkflowAuditLogRecord[] = [
+      {
+        auditId: 'AUD-2026-901',
+        timestamp: '2026-07-02 09:15',
+        projectId: 'DA-2026-001',
+        templateId: 'TPL-GDA1-01',
+        stepCode: 'BƯỚC 1.1',
+        actionType: 'DOWNLOAD_MASTER_TEMPLATE',
+        actorEmail: 'hieuvv@company.com',
+        actorName: 'Vũ Văn Hiếu (PM)',
+        actorRole: 'PROJECT_MANAGER',
+        organizationCode: 'BAN-QLDA-GT',
+        fileName: 'BM-01_CSDL-212_Template_v2.0.xlsx',
+        versionTag: 'v2.0 (2026)',
+        digitalSignatureInfo: 'Master-Template-Checksum-OK',
+        details: 'Tải xuống biểu mẫu gốc thu thập dữ liệu dự án (TT 39/2026/TT-BXD).'
+      },
+      {
+        auditId: 'AUD-2026-902',
+        timestamp: '2026-07-02 09:20',
+        projectId: 'DA-2026-001',
+        templateId: 'TPL-GDA1-01',
+        stepCode: 'BƯỚC 1.1',
+        actionType: 'UPLOAD_SIGNED_SUBMISSION',
+        actorEmail: 'hieuvv@company.com',
+        actorName: 'Vũ Văn Hiếu (PM)',
+        actorRole: 'PROJECT_MANAGER',
+        organizationCode: 'BAN-QLDA-GT',
+        fileName: 'BM01_ThuThapDuLieu_DA_CauNhatLe3_Signed.xlsx',
+        versionTag: 'v2.0 (2026)',
+        digitalSignatureInfo: 'VNPT-CA-0100105616 | SHA256-002D-98FA21C0-BXD2026',
+        details: 'Upload hồ sơ hoàn thiện đã ký số SmartCA & mở khóa Bước 1.2.'
+      },
+      {
+        auditId: 'AUD-2026-903',
+        timestamp: '2026-07-06 14:15',
+        projectId: 'DA-2026-001',
+        templateId: 'TPL-GDA1-02',
+        stepCode: 'BƯỚC 1.2',
+        actionType: 'UPLOAD_SIGNED_SUBMISSION',
+        actorEmail: 'hieuvv@company.com',
+        actorName: 'Vũ Văn Hiếu (PM)',
+        actorRole: 'PROJECT_MANAGER',
+        organizationCode: 'BAN-QLDA-GT',
+        fileName: 'Mau04_BaoCaoThamDinh_BCNCKT_ND217_Signed.pdf',
+        versionTag: 'v2.1 (2026)',
+        digitalSignatureInfo: 'VGCA-GOV-BXD-2026 | SHA256-002B-77CE19A4-BXD2026',
+        details: 'Upload Báo cáo thẩm định Mẫu số 04 (Bản sao điện tử chứng thực) & mở khóa Giai đoạn 2.'
+      }
+    ];
+
+    if (typeof localStorage === 'undefined') {
+      return projectId ? defaultLogs.filter(l => l.projectId === projectId || l.projectId === 'MASTER_REPO') : defaultLogs;
+    }
+    const raw = localStorage.getItem('PMS_2026_WORKFLOW_AUDIT_LOGS_KEY');
+    if (!raw) {
+      localStorage.setItem('PMS_2026_WORKFLOW_AUDIT_LOGS_KEY', JSON.stringify(defaultLogs));
+      return projectId ? defaultLogs.filter(l => l.projectId === projectId || l.projectId === 'MASTER_REPO') : defaultLogs;
+    }
+    try {
+      const all: WorkflowAuditLogRecord[] = JSON.parse(raw);
+      return projectId ? all.filter(l => l.projectId === projectId || l.projectId === 'MASTER_REPO') : all;
+    } catch {
+      return defaultLogs;
+    }
+  },
+
+  appendWorkflowAuditLog(log: WorkflowAuditLogRecord): void {
+    if (typeof localStorage !== 'undefined') {
+      const current = this.getWorkflowAuditLogs();
+      const updated = [log, ...current];
+      localStorage.setItem('PMS_2026_WORKFLOW_AUDIT_LOGS_KEY', JSON.stringify(updated));
+    }
+  },
+
+  recordTemplateDownloadAudit(
+    projectId: string,
+    templateId: string,
+    actorEmail: string,
+    actorName: string,
+    actorRole: string
+  ): WorkflowAuditLogRecord {
+    const templates = this.getMasterTemplates();
+    const tpl = templates.find(t => t.templateId === templateId) || MASTER_WORKFLOW_TEMPLATES_2026[0];
+    const nowStr = new Date().toISOString().replace('T', ' ').substring(0, 16);
+    const log: WorkflowAuditLogRecord = {
+      auditId: `AUD-${Date.now()}-${Math.floor(Math.random() * 1000)}`,
+      timestamp: nowStr,
+      projectId: safeString(projectId, 'DA-2026-001'),
+      templateId: tpl.templateId,
+      stepCode: tpl.stepCode,
+      actionType: 'DOWNLOAD_MASTER_TEMPLATE',
+      actorEmail: safeString(actorEmail),
+      actorName: safeString(actorName),
+      actorRole: safeString(actorRole),
+      organizationCode: 'BAN-QLDA-2026',
+      fileName: `${tpl.formCode.replace(/[^a-zA-Z0-9_-]/g, '_')}_${tpl.version.replace(/\s+/g, '')}.${tpl.templateFileFormat.toLowerCase()}`,
+      versionTag: tpl.version,
+      digitalSignatureInfo: 'Master-Template-Origin',
+      details: `Người dùng tải xuống biểu mẫu gốc [${tpl.formCode} - ${tpl.templateName}] (${tpl.version}).`
+    };
+    this.appendWorkflowAuditLog(log);
+    return log;
   }
 };
+
 

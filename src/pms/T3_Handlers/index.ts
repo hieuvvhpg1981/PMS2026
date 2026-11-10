@@ -344,5 +344,82 @@ export const PmsHandlers = {
     } catch {
       return { success: false, data: {} };
     }
+  },
+
+  /**
+   * API WORKFLOW & MASTER TEMPLATES: GHI NHẬN TẢI XUỐNG BIỂU MẪU GỐC (AUDIT TRAIL)
+   */
+  workflowDownloadTemplateApi(params: {
+    projectId: string;
+    templateId: string;
+    actorEmail: string;
+    actorName: string;
+    actorRole: string;
+  }) {
+    const log = PmsService.recordTemplateDownloadAudit(
+      params.projectId,
+      params.templateId,
+      params.actorEmail,
+      params.actorName,
+      params.actorRole
+    );
+    return {
+      success: true,
+      log,
+      message: `Đã tải xuống biểu mẫu gốc [${log.fileName}] và ghi nhận Audit Trail!`
+    };
+  },
+
+  /**
+   * API WORKFLOW & MASTER TEMPLATES: UPLOAD FILE HOÀN THIỆN & KIỂM TRA CHỐT CHẶN BLOCKER
+   */
+  workflowSubmitStepApi(params: {
+    projectId: string;
+    templateId: string;
+    fileName: string;
+    fileSizeMB: number;
+    hasDigitalSignature: boolean;
+    hasCertifiedCopy: boolean;
+    signerCertificateId: string;
+    actorEmail: string;
+    actorName: string;
+    actorRole: string;
+  }) {
+    return PmsService.submitWorkflowStepFile(
+      params.projectId,
+      params.templateId,
+      params.fileName,
+      params.fileSizeMB,
+      params.hasDigitalSignature,
+      params.hasCertifiedCopy,
+      params.signerCertificateId,
+      params.actorEmail,
+      params.actorName,
+      params.actorRole
+    );
+  },
+
+  /**
+   * API WORKFLOW & MASTER TEMPLATES: ADMIN CẬP NHẬT PHIÊN BẢN BIỂU MẪU GỐC
+   */
+  workflowAdminUpdateTemplateApi(params: {
+    templateId: string;
+    newVersion: string;
+    newLegalBasis: string;
+    newDescription: string;
+    actorEmail: string;
+    actorName: string;
+    actorRole: string;
+  }) {
+    return PmsService.updateMasterTemplateByAdmin(
+      params.templateId,
+      params.newVersion,
+      params.newLegalBasis,
+      params.newDescription,
+      params.actorEmail,
+      params.actorName,
+      params.actorRole
+    );
   }
 };
+

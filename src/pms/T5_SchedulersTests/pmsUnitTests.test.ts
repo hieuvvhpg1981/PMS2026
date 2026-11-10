@@ -5,8 +5,8 @@
  */
 
 import { PmsService, UserService } from '../T2_Services';
-import { ProjectGroup, ConstructionGrade, ApprovalStatus, GpmbStatus, db } from '../T0_Config';
-import { safeNumber, safeString, formatVND, validateRequiredAttachments, checkEstimateExceedsTMDT, parseExcelArrayBufferToJSON, updateBoqRow, recalculateTotalBudget, calculateBiddingSavings, validateRequiredAttachmentsStage3, validatePackageDisbursement, canUserAccessProject, filterProjectsForUser, uploadToUserPersonalDrive, shareDriveFolderWithUsers, verifyGoogleDriveConnection, decodeGoogleJwt, matchUserRole, authenticateUserCredentials, updateUserAccountInSystem, evaluateCostOverrunRisk206, calculateIpcNetPayment210, validateContractorAndCchn212 } from '../T1_Utils';
+import { ProjectGroup, ConstructionGrade, ApprovalStatus, GpmbStatus, db, MASTER_WORKFLOW_TEMPLATES_2026 } from '../T0_Config';
+import { safeNumber, safeString, formatVND, validateRequiredAttachments, checkEstimateExceedsTMDT, parseExcelArrayBufferToJSON, updateBoqRow, recalculateTotalBudget, calculateBiddingSavings, validateRequiredAttachmentsStage3, validatePackageDisbursement, canUserAccessProject, filterProjectsForUser, uploadToUserPersonalDrive, shareDriveFolderWithUsers, verifyGoogleDriveConnection, decodeGoogleJwt, matchUserRole, authenticateUserCredentials, updateUserAccountInSystem, evaluateCostOverrunRisk206, calculateIpcNetPayment210, validateContractorAndCchn212, evaluateSequentialWorkflowLock, verifyElectronicCertifiedFile } from '../T1_Utils';
 import * as XLSX from 'xlsx';
 
 function runPmsUnitTestSuite() {
@@ -320,6 +320,48 @@ function runPmsUnitTestSuite() {
   assert(
     nationalSchema.schemaVersion === 'MOC-NATIONAL-DB-2026-V2' && Array.isArray(nationalSchema.projectsPayload),
     'NĐ 212/2026 & TT 39/2026: Xuất thành công Schema CSDL Quốc gia 6 phân hệ MOC-NATIONAL-DB-2026-V2'
+  );
+
+  // --- TEST CASE 17: Interactive Workflow Step-by-Step Blocker, Master Templates & Audit Trail ---
+  console.log('\n--- TEST 17: Interactive Workflow Step-by-Step Blocker, Master Templates & Audit Trail ---');
+  const lockWithEmptySubmissions = evaluateSequentialWorkflowLock(MASTER_WORKFLOW_TEMPLATES_2026, []);
+  assert(
+    lockWithEmptySubmissions[0].isUnlocked === true && lockWithEmptySubmissions[1].isUnlocked === false,
+    'Workflow Blocker Engine: Bước 1.1 mở khóa mặc định, Bước 1.2 (Mẫu số 04) bị KHÓA CỨNG khi Bước 1.1 chưa hoàn thành'
+  );
+
+  const fileVerifyFailNoSig = verifyElectronicCertifiedFile('Mau04_ThamDinh.pdf', ['.pdf', '.docx'], false, true, true, true);
+  assert(
+    fileVerifyFailNoSig.isValid === false && fileVerifyFailNoSig.message.includes('CHẶN UPLOAD'),
+    'Chốt chặn Ký số & Chứng thực: Từ chối file upload nếu thiếu Chữ ký số điện tử SmartCA'
+  );
+
+  const nonAdminUpdateAttempt = PmsService.updateMasterTemplateByAdmin(
+    'TPL-GDA1-02',
+    'v3.0',
+    'NĐ 217/2026',
+    'Mô tả mới',
+    'hieuvv@company.com',
+    'Vũ Văn Hiếu',
+    'PROJECT_MANAGER'
+  );
+  assert(
+    nonAdminUpdateAttempt.success === false && nonAdminUpdateAttempt.message.includes('CHẶN PHÂN QUYỀN'),
+    'RBAC Master Templates: Chặn người dùng thường (PROJECT_MANAGER) cập nhật hoặc thay thế Kho biểu mẫu gốc'
+  );
+
+  const adminUpdateAttempt = PmsService.updateMasterTemplateByAdmin(
+    'TPL-GDA1-02',
+    'v2.2 (2026)',
+    'Nghị định 217/2026/NĐ-CP (Mẫu số 04)',
+    'Cập nhật biểu mẫu thẩm định mới',
+    'admin@pms2026.gov.vn',
+    'Quản Trị Viên',
+    'ADMIN'
+  );
+  assert(
+    adminUpdateAttempt.success === true && adminUpdateAttempt.updatedTemplate?.version === 'v2.2 (2026)',
+    'RBAC Master Templates & Audit Trail: Cho phép ADMIN cập nhật phiên bản biểu mẫu gốc lên v2.2 (2026) và tự động lưu vết Audit Trail'
   );
 
   console.log(`\n================ SUMMARY: ${passed} PASSED, ${failed} FAILED ================`);

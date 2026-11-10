@@ -13,7 +13,8 @@ import {
   X,
   ShieldCheck,
   Key,
-  Settings
+  Settings,
+  GitCommitHorizontal
 } from 'lucide-react';
 import { clsx, type ClassValue } from 'clsx';
 import { twMerge } from 'tailwind-merge';
@@ -25,6 +26,7 @@ import Stage3ProcurementView from './views/Stage3ProcurementView';
 import Stage4ExecutionView from './views/Stage4ExecutionView';
 import Stage5ClosureView from './views/Stage5ClosureView';
 import NationalDbSyncView from './views/NationalDbSyncView';
+import WorkflowTemplateManagerView from './views/WorkflowTemplateManagerView';
 import LoginView from './views/LoginView';
 import { StageHeader } from './components/StageHeader';
 import ErrorBoundary from './components/ErrorBoundary';
@@ -242,8 +244,16 @@ export default function App() {
                 />
 
                 <div className="pt-3 pb-1 text-[10px] uppercase tracking-wider font-extrabold text-slate-400 px-3">
-                  Cơ Sở Dữ Liệu Quốc Gia
+                  Quy Trình & CSDL Quốc Gia
                 </div>
+
+                <SidebarItem
+                  icon={GitCommitHorizontal}
+                  label="Quy Trình & Biểu Mẫu Số"
+                  sublabel="Blocker Nối Tiếp & Audit Trail"
+                  active={activeTab === 'workflowTemplates'}
+                  onClick={() => { setActiveTab('workflowTemplates'); setIsSidebarOpen(false); }}
+                />
 
                 <SidebarItem
                   icon={Globe2}
@@ -348,6 +358,7 @@ export default function App() {
                   {activeTab === 'stage3' && <Stage3ProcurementView currentUser={currentUser} />}
                   {activeTab === 'stage4' && <Stage4ExecutionView currentUser={currentUser} selectedProjectId={globalProjectId} selectedPackageId={globalPackageId} />}
                   {activeTab === 'stage5' && <Stage5ClosureView currentUser={currentUser} selectedProjectId={globalProjectId} selectedPackageId={globalPackageId} />}
+                  {activeTab === 'workflowTemplates' && <WorkflowTemplateManagerView currentUser={currentUser} selectedProjectId={globalProjectId} />}
                   {activeTab === 'nationalDb' && <NationalDbSyncView />}
                 </>
               )}
