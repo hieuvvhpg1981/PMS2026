@@ -2,7 +2,7 @@ import React, { useState, useEffect, useMemo } from 'react';
 import { PmsService, ProjectData, Stage1DocumentRecord } from '../pms/T2_Services';
 import { PmsHandlers } from '../pms/T3_Handlers';
 import { ProjectGroup, ConstructionGrade, STAGE1_DOCUMENT_TYPES } from '../pms/T0_Config';
-import { formatVND, safeNumber, safeString, calculateProjectRouting, getRequiredDocumentMatrix, canCreateProject, canEditProject } from '../pms/T1_Utils';
+import { formatVND, safeNumber, safeString, calculateProjectRouting, getRequiredDocumentMatrix, canCreateProject, canEditProject, formatCurrencyInputMask, parseCurrencyInputMask, formatStatusOrCodeVN } from '../pms/T1_Utils';
 import { UserProfile } from '../pms/T2_Services';
 import Stage1DocumentUploader from '../components/Stage1DocumentUploader';
 import {
@@ -164,64 +164,66 @@ export default function Stage1InitiationView({
         {/* Form Khởi Tạo Dự Án */}
         <div className="lg:col-span-2 bg-white p-6 rounded-2xl border border-slate-200 shadow-sm space-y-4">
           <h3 className="text-base font-bold text-slate-900 flex items-center gap-2 border-b border-slate-100 pb-3">
-            <PlusCircle className="w-5 h-5 text-blue-600" />
-            KHỞI TẠO HỒ SƠ DỰ ÁN ĐẦU TƯ XÂY DỰNG MỚI
+            <PlusCircle className="w-5 h-5 text-indigo-600" />
+            Khởi tạo hồ sơ dự án đầu tư xây dựng mới
           </h3>
 
           {!canCreateProject(currentUser) ? (
             <div className="p-4 bg-amber-50 border border-amber-300 rounded-2xl text-amber-950 font-bold text-xs space-y-1">
               <div className="flex items-center gap-2 text-amber-700">
                 <AlertCircle className="w-5 h-5 shrink-0" />
-                <span className="font-extrabold uppercase">CHẾ ĐỘ XEM VÀ BÁO CÁO (READ-ONLY)</span>
+                <span className="font-extrabold">Chế độ xem và báo cáo (Read-only)</span>
               </div>
               <p className="text-slate-600 font-normal">
-                Tài khoản của bạn ({currentUser?.email} - Vai trò: <strong>{currentUser?.role || 'MEMBER'}</strong>) được cấp quyền theo dõi thông tin. Tính năng <strong>[+ Khởi Tạo Dự Án Mới]</strong> chỉ dành cho Quản trị viên (ADMIN) hoặc Trưởng dự án (PROJECT MANAGER).
+                Tài khoản của bạn ({currentUser?.email} - Vai trò: <strong>{formatStatusOrCodeVN(currentUser?.role || 'MEMBER')}</strong>) được cấp quyền theo dõi thông tin. Tính năng <strong>[+ Khởi tạo dự án mới]</strong> chỉ dành cho Quản trị viên hoặc Trưởng dự án.
               </p>
             </div>
           ) : (
-            <div className="space-y-3 text-xs">
+            <div className="space-y-4 text-xs">
               <div>
-                <label className="block text-slate-700 font-bold mb-1">TÊN DỰ ÁN ĐẦU TƯ XÂY DỰNG *</label>
+                <label className="block text-sm font-medium text-slate-700 mb-1">Tên dự án đầu tư xây dựng *</label>
                 <input
                   type="text"
                   value={tenDuAn}
                   onChange={e => setTenDuAn(e.target.value)}
                   placeholder="VD: Dự án Xây dựng Cầu Vượt Nút Giao Thông..."
-                  className="w-full px-3.5 py-2.5 border border-slate-300 rounded-xl focus:ring-2 focus:ring-blue-500 outline-none text-slate-900 font-semibold"
+                  className="w-full px-3.5 py-2.5 border border-slate-300 rounded-xl focus:ring-2 focus:ring-indigo-500 outline-none text-slate-900 font-semibold text-sm"
                 />
               </div>
 
               <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
                 <div>
-                  <label className="block text-slate-700 font-bold mb-1">TỔNG MỨC ĐẦU TƯ DỰ KIẾN (VND) *</label>
+                  <label className="block text-sm font-medium text-slate-700 mb-1">Tổng mức đầu tư dự kiến (VNĐ) *</label>
                   <input
-                    type="number"
-                    value={tongMucDauTuInput}
-                    onChange={e => setTongMucDauTuInput(Number(e.target.value) || 0)}
-                    className="w-full px-3.5 py-2.5 border border-slate-300 rounded-xl font-mono font-bold text-blue-900 outline-none focus:ring-2 focus:ring-blue-500"
+                    type="text"
+                    inputMode="numeric"
+                    value={formatCurrencyInputMask(tongMucDauTuInput)}
+                    onChange={e => setTongMucDauTuInput(parseCurrencyInputMask(e.target.value))}
+                    placeholder="35.000.000.000"
+                    className="w-full px-3.5 py-2.5 border border-slate-300 rounded-xl font-mono tabular-nums font-bold text-indigo-950 text-sm outline-none focus:ring-2 focus:ring-indigo-500"
                   />
-                  <span className="text-[11px] text-slate-500 font-semibold block mt-1">Định dạng: {formatVND(tongMucDauTuInput)}</span>
+                  <span className="text-[11px] text-slate-500 font-medium tabular-nums block mt-1">Định dạng: {formatVND(tongMucDauTuInput)}</span>
                 </div>
 
                 {/* DYNAMIC READ-ONLY FIELD FOR NĐ 217/2026/NĐ-CP CLASSIFICATION */}
                 <div>
-                  <label className="block text-slate-700 font-bold mb-1">PHÂN CẤP PHÂN LOẠI (NĐ 217/2026/NĐ-CP)</label>
-                  <div className={`p-2.5 rounded-xl border font-black text-xs flex items-center justify-between shadow-2xs transition-all ${
+                  <label className="block text-sm font-medium text-slate-700 mb-1">Phân cấp phân loại (NĐ 217/2026/NĐ-CP)</label>
+                  <div className={`p-2.5 rounded-xl border font-bold text-xs flex items-center justify-between shadow-2xs transition-all ${
                     isBcktkt 
                       ? 'bg-emerald-50 border-emerald-400 text-emerald-950' 
                       : 'bg-amber-50 border-amber-400 text-amber-950'
                   }`}>
                     <div className="flex items-center gap-2">
                       <Sparkles className={`w-4 h-4 ${isBcktkt ? 'text-emerald-600' : 'text-amber-600'}`} />
-                      <span>{projectRoutingResult}</span>
+                      <span className="tabular-nums">{projectRoutingResult}</span>
                     </div>
-                    <span className={`px-2 py-0.5 rounded-md text-[10px] font-extrabold uppercase ${
+                    <span className={`px-2 py-0.5 rounded-md text-[11px] font-bold ${
                       isBcktkt ? 'bg-emerald-200 text-emerald-900' : 'bg-amber-200 text-amber-900'
                     }`}>
                       {isBcktkt ? 'Báo cáo KT-KT' : 'BC NCT-KT'}
                     </span>
                   </div>
-                  <span className="text-[11px] text-slate-500 font-normal block mt-1">
+                  <span className="text-[11px] text-slate-500 font-normal tabular-nums block mt-1">
                     {isBcktkt 
                       ? `✅ Dự toán < ${isSpecialArea ? '70' : '40'} tỷ VNĐ: Tự động phân loại lập BCKTKT (1 bước thu gọn)`
                       : `⚠️ Dự toán >= ${isSpecialArea ? '70' : '40'} tỷ VNĐ: Tự động phân loại lập BCNCTKT / BCNCKT`}
@@ -231,11 +233,11 @@ export default function Stage1InitiationView({
 
               <div className="grid grid-cols-1 sm:grid-cols-3 gap-4">
                 <div>
-                  <label className="block text-slate-700 font-bold mb-1">LOẠI CÔNG TRÌNH (NĐ 217/2026)</label>
+                  <label className="block text-sm font-medium text-slate-700 mb-1">Loại công trình (NĐ 217/2026)</label>
                   <select
                     value={loaiCongTrinh}
                     onChange={e => setLoaiCongTrinh(e.target.value)}
-                    className="w-full px-3 py-2 border border-slate-300 rounded-xl bg-white text-slate-800 font-semibold outline-none"
+                    className="w-full px-3 py-2 border border-slate-300 rounded-xl bg-white text-slate-800 font-semibold outline-none text-sm"
                   >
                     <option value="CÔNG TRÌNH GIAO THÔNG">Công trình Giao thông</option>
                     <option value="CÔNG TRÌNH DÂN DỤNG">Công trình Dân dụng</option>
@@ -246,11 +248,11 @@ export default function Stage1InitiationView({
                 </div>
 
                 <div>
-                  <label className="block text-slate-700 font-bold mb-1">NGUỒN VỐN ĐẦU TƯ</label>
+                  <label className="block text-sm font-medium text-slate-700 mb-1">Nguồn vốn đầu tư</label>
                   <select
                     value={nguonVon}
                     onChange={e => setNguonVon(e.target.value)}
-                    className="w-full px-3 py-2 border border-slate-300 rounded-xl bg-white text-slate-800 font-medium outline-none"
+                    className="w-full px-3 py-2 border border-slate-300 rounded-xl bg-white text-slate-800 font-medium outline-none text-sm"
                   >
                     <option value="Ngân sách Đầu tư công 2026">Ngân sách Đầu tư công 2026</option>
                     <option value="Vốn ODA & Vay ưu đãi nước ngoài">Vốn ODA & Vay ưu đãi nước ngoài</option>
@@ -260,12 +262,12 @@ export default function Stage1InitiationView({
                 </div>
 
                 <div>
-                  <label className="block text-slate-700 font-bold mb-1">CHỦ ĐẦU TƯ / ĐẠI DIỆN CHỦ ĐẦU TƯ</label>
+                  <label className="block text-sm font-medium text-slate-700 mb-1">Chủ đầu tư / Đại diện chủ đầu tư</label>
                   <input
                     type="text"
                     value={chuDauTu}
                     onChange={e => setChuDauTu(e.target.value)}
-                    className="w-full px-3 py-2 border border-slate-300 rounded-xl text-slate-800 outline-none"
+                    className="w-full px-3 py-2 border border-slate-300 rounded-xl text-slate-800 outline-none text-sm"
                   />
                 </div>
               </div>
@@ -280,8 +282,8 @@ export default function Stage1InitiationView({
                     className="w-4 h-4 text-emerald-600 rounded cursor-pointer"
                   />
                   <div>
-                    <span className="font-bold text-slate-900 block text-xs">Vùng đặc biệt khó khăn (Hạn mức dưới 70 tỷ)</span>
-                    <span className="text-[10px] text-slate-500 block">Nâng hạn mức lập BCKTKT lên 70 tỷ VNĐ</span>
+                    <span className="font-semibold text-slate-900 block text-xs">Vùng đặc biệt khó khăn (Hạn mức dưới 70 tỷ)</span>
+                    <span className="text-[11px] text-slate-500 block">Nâng hạn mức lập BCKTKT lên 70 tỷ VNĐ</span>
                   </div>
                 </label>
 
@@ -290,11 +292,11 @@ export default function Stage1InitiationView({
                     type="checkbox"
                     checked={isSpecial}
                     onChange={e => setIsSpecial(e.target.checked)}
-                    className="w-4 h-4 text-blue-600 rounded cursor-pointer"
+                    className="w-4 h-4 text-indigo-600 rounded cursor-pointer"
                   />
                   <div>
-                    <span className="font-bold text-slate-900 block text-xs">Hạ tầng Kỹ thuật Cấp Đặc biệt</span>
-                    <span className="text-[10px] text-slate-500 block">Trình duyệt thẩm định Cấp Bộ / Chính phủ</span>
+                    <span className="font-semibold text-slate-900 block text-xs">Hạ tầng kỹ thuật cấp đặc biệt</span>
+                    <span className="text-[11px] text-slate-500 block">Trình duyệt thẩm định cấp Bộ / Chính phủ</span>
                   </div>
                 </label>
               </div>
@@ -302,14 +304,14 @@ export default function Stage1InitiationView({
               {/* SmartCA token field */}
               <div className="pt-2 flex flex-col sm:flex-row justify-between items-start sm:items-center gap-3">
                 <div className="flex items-center gap-1.5 text-[11px] text-emerald-700 font-semibold">
-                  <ShieldCheck className="w-4 h-4" /> Tích hợp Xác thực Chữ ký số SmartCA & Cấp Mã Định Danh Quốc Gia (NĐ 212/2026)
+                  <ShieldCheck className="w-4 h-4" /> Tích hợp xác thực chữ ký số SmartCA & cấp mã định danh quốc gia (NĐ 212/2026)
                 </div>
 
                 <button
                   onClick={handleInitiateProject}
-                  className="w-full sm:w-auto bg-blue-600 hover:bg-blue-700 text-white font-bold px-6 py-2.5 rounded-xl transition-all shadow-md flex items-center justify-center gap-2"
+                  className="w-full sm:w-auto bg-indigo-600 hover:bg-indigo-700 text-white font-semibold px-6 py-2.5 rounded-xl transition-all shadow-sm flex items-center justify-center gap-2 text-sm"
                 >
-                  <Sparkles className="w-4 h-4" /> Khởi Tạo & Ký Phê Duyệt Dự Án
+                  <Sparkles className="w-4 h-4" /> Khởi tạo & ký phê duyệt dự án
                 </button>
               </div>
             </div>
@@ -319,43 +321,45 @@ export default function Stage1InitiationView({
         {/* Dynamic Auto-Routing Engine Card */}
         <div className="bg-slate-900 text-white p-6 rounded-2xl border border-slate-800 shadow-xl space-y-4 flex flex-col justify-between">
           <div className="space-y-3">
-            <div className="flex items-center gap-2 text-blue-400 font-bold text-xs">
+            <div className="flex items-center gap-2 text-sky-400 font-bold text-xs">
               <Cpu className="w-4 h-4" /> AUTO-ROUTING ENGINE (NĐ 217/2026/NĐ-CP)
             </div>
             <h4 className="text-base font-extrabold text-white leading-snug">
-              CƠ CHẾ PHÂN NHÁNH PHÁP LÝ TỰ ĐỘNG
+              Cơ chế phân nhánh pháp lý tự động
             </h4>
-            <p className="text-[11px] text-slate-400">
+            <p className="text-[11px] text-slate-300">
               Căn cứ Luật Xây dựng 135/2025, NĐ 217/2026 & TT 34/2026/TT-BXD
             </p>
 
             <div className="space-y-2 pt-2 text-xs">
               <div className="bg-slate-800/90 p-3 rounded-xl border border-slate-700 flex justify-between items-center">
                 <div>
-                  <div className="text-[10px] text-slate-400 font-bold uppercase tracking-wider">NHÓM DỰ ÁN</div>
-                  <div className="text-emerald-400 font-extrabold text-base mt-0.5">{routing.group}</div>
+                  <div className="text-[11px] text-slate-300 font-medium">Nhóm dự án</div>
+                  <div className="text-emerald-400 font-extrabold text-base mt-0.5">{formatStatusOrCodeVN(routing.group)}</div>
                 </div>
-                <span className="px-2.5 py-1 rounded-lg bg-emerald-500/20 text-emerald-300 font-bold text-[11px] border border-emerald-500/30">
+                <span className="px-2.5 py-1 rounded-lg bg-emerald-500/20 text-emerald-300 font-bold text-[11px] border border-emerald-500/30 tabular-nums">
                   Thiết kế {routing.designStepsCount} bước
                 </span>
               </div>
 
               <div className="bg-slate-800/90 p-3 rounded-xl border border-slate-700 flex justify-between items-center">
                 <div>
-                  <div className="text-[10px] text-slate-400 font-bold uppercase tracking-wider">CẤP & LOẠI CÔNG TRÌNH</div>
-                  <div className="text-blue-400 font-extrabold text-sm mt-0.5">{routing.recommendedGrade} • {loaiCongTrinh}</div>
+                  <div className="text-[11px] text-slate-300 font-medium">Cấp & loại công trình</div>
+                  <div className="text-sky-400 font-extrabold text-sm mt-0.5">
+                    {formatStatusOrCodeVN(routing.recommendedGrade)} • {formatStatusOrCodeVN(loaiCongTrinh)}
+                  </div>
                 </div>
               </div>
 
               <div className="bg-slate-800/90 p-3 rounded-xl border border-slate-700">
-                <div className="text-[10px] text-slate-400 font-bold uppercase tracking-wider">CƠ QUAN CHUYÊN MÔN VỀ XD THẨM ĐỊNH</div>
+                <div className="text-[11px] text-slate-300 font-medium">Cơ quan chuyên môn về XD thẩm định</div>
                 <div className="text-amber-300 font-bold text-xs mt-1">{routing.appraisalAuthority}</div>
               </div>
             </div>
           </div>
 
-          <div className="p-3 bg-blue-950/80 border border-blue-700/60 rounded-xl text-xs text-blue-200 flex items-start gap-2.5">
-            <Zap className="w-4 h-4 text-blue-400 shrink-0 mt-0.5" />
+          <div className="p-3 bg-slate-800 border border-sky-500/40 rounded-xl text-xs text-sky-200 flex items-start gap-2.5">
+            <Zap className="w-4 h-4 text-sky-400 shrink-0 mt-0.5" />
             <span className="font-medium leading-relaxed">{routing.workflowPath}</span>
           </div>
         </div>
@@ -366,17 +370,17 @@ export default function Stage1InitiationView({
         <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-2 border-b border-slate-100 pb-3">
           <div>
             <h3 className="text-base font-bold text-slate-900 flex items-center gap-2">
-              <FileCheck2 className="w-5 h-5 text-blue-600" />
-              MA TRẬN DANH MỤC HỒ SƠ BẮT BUỘC THEO LUỒNG PHÁP LÝ
+              <FileCheck2 className="w-5 h-5 text-indigo-600" />
+              Ma trận danh mục hồ sơ bắt buộc theo luồng pháp lý
             </h3>
             <p className="text-xs text-slate-500 mt-0.5">
-              Tự động khởi tạo danh mục văn bản cần nộp theo phân loại: <strong className="text-blue-700">{projectRoutingResult}</strong>
+              Tự động khởi tạo danh mục văn bản cần nộp theo phân loại: <strong className="text-indigo-700 tabular-nums">{projectRoutingResult}</strong>
             </p>
           </div>
 
           <div className="flex items-center gap-2">
-            <span className="bg-blue-50 text-blue-800 text-xs font-bold px-3 py-1 rounded-full border border-blue-200">
-              {requiredMatrix.length} Tài liệu quy định
+            <span className="bg-indigo-50 text-indigo-800 text-xs font-bold px-3 py-1 rounded-full border border-indigo-200 tabular-nums">
+              {requiredMatrix.length} tài liệu quy định
             </span>
           </div>
         </div>
@@ -384,12 +388,12 @@ export default function Stage1InitiationView({
         <div className="overflow-x-auto rounded-xl border border-slate-200">
           <table className="w-full text-left text-xs border-collapse">
             <thead>
-              <tr className="bg-slate-100 border-b border-slate-200 text-slate-700 font-bold uppercase tracking-wider">
-                <th className="p-3.5 min-w-[220px]">Tên Loại Tài Liệu Hồ Sơ</th>
-                <th className="p-3.5 min-w-[180px]">Bước Thực Hiện</th>
-                <th className="p-3.5 min-w-[130px]">Trạng Thái Nộp</th>
-                <th className="p-3.5 min-w-[200px]">Tệp Đính Kèm</th>
-                <th className="p-3.5 text-center min-w-[100px]">Thao Tác</th>
+              <tr className="bg-slate-50 border-b border-slate-200 text-slate-700 font-semibold">
+                <th className="p-3.5 min-w-[220px]">Tên loại tài liệu hồ sơ</th>
+                <th className="p-3.5 min-w-[180px]">Bước thực hiện</th>
+                <th className="p-3.5 min-w-[130px]">Trạng thái nộp</th>
+                <th className="p-3.5 min-w-[200px]">Tệp đính kèm</th>
+                <th className="p-3.5 text-center min-w-[100px]">Thao tác</th>
               </tr>
             </thead>
             <tbody className="divide-y divide-slate-200 bg-white">
@@ -397,23 +401,23 @@ export default function Stage1InitiationView({
                 const existingFile = uploadedFiles.find(f => f.docTypeName === item.docType || f.docTypeId === item.docType);
                 return (
                   <tr key={index} className="hover:bg-slate-50 transition-colors">
-                    <td className="p-3.5 font-bold text-slate-800">{item.docType}</td>
+                    <td className="p-3.5 font-semibold text-slate-800">{item.docType}</td>
                     <td className="p-3.5 text-slate-600 font-medium">{item.step}</td>
                     <td className="p-3.5">
                       {existingFile ? (
-                        <span className="inline-flex items-center gap-1 px-2.5 py-1 bg-emerald-100 text-emerald-800 text-[11px] font-bold rounded-full border border-emerald-200">
+                        <span className="inline-flex items-center gap-1 px-2.5 py-1 bg-emerald-100 text-emerald-800 text-[11px] font-semibold rounded-full border border-emerald-200">
                           <CheckCircle2 className="w-3.5 h-3.5 text-emerald-600" /> Đã tải lên
                         </span>
                       ) : (
-                        <span className="inline-flex items-center gap-1 px-2.5 py-1 bg-amber-100 text-amber-800 text-[11px] font-bold rounded-full border border-amber-200">
+                        <span className="inline-flex items-center gap-1 px-2.5 py-1 bg-amber-100 text-amber-800 text-[11px] font-semibold rounded-full border border-amber-200">
                           <AlertCircle className="w-3.5 h-3.5 text-amber-600" /> Chưa có file
                         </span>
                       )}
                     </td>
                     <td className="p-3.5">
                       {existingFile ? (
-                        <a href={existingFile.fileUrl} target="_blank" rel="noreferrer" className="text-blue-600 font-semibold hover:underline flex items-center gap-1.5 truncate max-w-[220px]">
-                          <FileText className="w-4 h-4 text-blue-500 shrink-0" />
+                        <a href={existingFile.fileUrl} target="_blank" rel="noreferrer" className="text-indigo-600 font-semibold hover:underline flex items-center gap-1.5 truncate max-w-[220px]">
+                          <FileText className="w-4 h-4 text-indigo-500 shrink-0" />
                           <span className="truncate">{existingFile.fileName}</span>
                         </a>
                       ) : (
@@ -426,9 +430,9 @@ export default function Stage1InitiationView({
                           const fileInputEl = document.getElementById('stage1-file-input');
                           if (fileInputEl) fileInputEl.click();
                         }}
-                        className="inline-flex items-center gap-1 px-3 py-1.5 bg-blue-50 text-blue-700 border border-blue-200 rounded-lg hover:bg-blue-600 hover:text-white transition-all text-xs font-semibold shadow-2xs"
+                        className="inline-flex items-center gap-1 px-3 py-1.5 bg-white text-slate-700 border border-slate-300 rounded-lg hover:bg-slate-50 transition-all text-xs font-medium shadow-2xs"
                       >
-                        <Upload className="w-3.5 h-3.5" /> Upload
+                        <Upload className="w-3.5 h-3.5 text-slate-600" /> Upload
                       </button>
                     </td>
                   </tr>
@@ -445,18 +449,18 @@ export default function Stage1InitiationView({
           <div className="flex flex-col md:flex-row justify-between items-start md:items-center gap-3 border-b border-slate-100 pb-3">
             <div>
               <h3 className="text-base font-bold text-slate-900 flex items-center gap-2">
-                <Layers className="w-5 h-5 text-blue-600" />
-                QUY TRÌNH 5 BƯỚC HỒ SƠ PHÁP LÝ - DỰ ÁN [{currentProject.PROJECT_ID}]
+                <Layers className="w-5 h-5 text-indigo-600" />
+                Quy trình 5 bước hồ sơ pháp lý - Dự án <span className="font-mono tabular-nums">[{currentProject.PROJECT_ID}]</span>
               </h3>
               <p className="text-xs text-slate-500 mt-0.5">
-                Luồng: <strong className="text-blue-700">{currentProject.LUONG_XU_LY_PHAP_LY}</strong> | Nhóm: <strong className="text-emerald-700">{currentProject.NHOM_DU_AN}</strong>
+                Luồng: <strong className="text-indigo-700">{currentProject.LUONG_XU_LY_PHAP_LY}</strong> | Nhóm: <strong className="text-emerald-700">{formatStatusOrCodeVN(currentProject.NHOM_DU_AN)}</strong>
               </p>
             </div>
 
-            <div className="flex items-center gap-2 text-xs font-bold text-slate-600">
+            <div className="flex items-center gap-2 text-xs font-semibold text-slate-600">
               <span>Trạng thái:</span>
-              <span className="bg-emerald-100 text-emerald-800 px-3 py-1 rounded-full font-mono">
-                ĐANG_Ở_BƯỚC_{currentProject.BUOC_HIEN_TAI_GDA1 || activeStepId}
+              <span className="bg-emerald-50 text-emerald-800 border border-emerald-200 px-3 py-1 rounded-full font-semibold tabular-nums">
+                {formatStatusOrCodeVN(`ĐANG_Ở_BƯỚC_${currentProject.BUOC_HIEN_TAI_GDA1 || activeStepId}`)}
               </span>
             </div>
           </div>
@@ -472,15 +476,15 @@ export default function Stage1InitiationView({
                   onClick={() => setActiveStepId(step.stepId)}
                   className={`p-3 rounded-xl border text-left transition-all relative space-y-1 ${
                     isCurrent
-                      ? 'bg-blue-600 text-white border-blue-600 shadow-md font-bold'
+                      ? 'bg-indigo-50 text-indigo-700 border-indigo-200 border-b-2 border-b-indigo-600 shadow-2xs font-semibold'
                       : isPast
-                      ? 'bg-emerald-50 text-emerald-900 border-emerald-200 hover:bg-emerald-100'
-                      : 'bg-slate-50 text-slate-600 border-slate-200 hover:bg-slate-100'
+                      ? 'bg-emerald-50/70 text-emerald-900 border-emerald-200 hover:bg-emerald-100/70'
+                      : 'bg-white text-slate-700 border-slate-200 hover:bg-slate-50'
                   }`}
                 >
-                  <div className="text-[10px] uppercase font-mono tracking-wider opacity-80">Bước {step.stepId}</div>
-                  <div className="text-xs font-extrabold truncate">{step.stepName}</div>
-                  <div className="text-[10px] opacity-75 font-normal truncate">{step.responsibleUnit}</div>
+                  <div className="text-[11px] font-mono tabular-nums opacity-80">Bước {step.stepId}</div>
+                  <div className="text-sm font-medium truncate">{step.stepName}</div>
+                  <div className="text-[11px] opacity-75 font-normal truncate">{step.responsibleUnit}</div>
                 </button>
               );
             })}
@@ -490,8 +494,8 @@ export default function Stage1InitiationView({
           <div className="bg-slate-50 p-6 rounded-2xl border border-slate-200 space-y-4">
             <div className="flex justify-between items-center border-b border-slate-200 pb-3">
               <div>
-                <span className="bg-blue-100 text-blue-800 text-[10px] font-bold px-2.5 py-0.5 rounded-full uppercase">
-                  Chi Tiết Bước {activeStepConfig.stepId}
+                <span className="bg-indigo-100 text-indigo-800 text-[11px] font-semibold px-2.5 py-0.5 rounded-full tabular-nums">
+                  Chi tiết bước {activeStepConfig.stepId}
                 </span>
                 <h4 className="text-base font-bold text-slate-900 mt-1">
                   {activeStepConfig.stepName} - Đơn vị chủ trì: {activeStepConfig.responsibleUnit}
@@ -501,9 +505,9 @@ export default function Stage1InitiationView({
               {activeStepId < 5 && (
                 <button
                   onClick={() => handleProgressStep(activeStepId + 1)}
-                  className="bg-emerald-600 hover:bg-emerald-700 text-white font-bold text-xs px-4 py-2 rounded-xl transition-all shadow-sm flex items-center gap-1.5"
+                  className="bg-indigo-600 hover:bg-indigo-700 text-white font-semibold text-xs px-4 py-2 rounded-xl transition-all shadow-sm flex items-center gap-1.5 tabular-nums"
                 >
-                  <span>Hoàn Tất & Nghiệm Thu Bước {activeStepId + 1}</span>
+                  <span>Hoàn tất & nghiệm thu bước {activeStepId + 1}</span>
                   <ChevronRight className="w-4 h-4" />
                 </button>
               )}

@@ -58,16 +58,16 @@ const SidebarItem = ({
   <button
     onClick={onClick}
     className={cn(
-      "flex items-center w-full gap-3 px-3.5 py-3 text-left transition-all rounded-xl",
+      "flex items-center w-full gap-3 px-3.5 py-2.5 text-left transition-all rounded-r-xl border-l-4",
       active
-        ? "bg-blue-600 text-white shadow-lg shadow-blue-500/30 font-semibold"
-        : "text-slate-600 hover:bg-slate-100 hover:text-slate-900"
+        ? "bg-indigo-50 text-indigo-700 border-indigo-600 font-semibold"
+        : "text-slate-600 border-transparent hover:bg-slate-50 hover:text-slate-900 font-medium"
     )}
   >
-    <Icon size={20} className="shrink-0" />
+    <Icon size={19} className={cn("shrink-0", active ? "text-indigo-600" : "text-slate-400")} />
     <div className="truncate">
-      <div className="text-xs font-bold leading-snug truncate">{label}</div>
-      {sublabel && <div className={cn("text-[11px] truncate opacity-80 font-normal", active ? "text-blue-100" : "text-slate-400")}>{sublabel}</div>}
+      <div className="text-sm leading-snug truncate">{label}</div>
+      {sublabel && <div className={cn("text-[11px] truncate font-normal", active ? "text-indigo-600/80" : "text-slate-400")}>{sublabel}</div>}
     </div>
   </button>
 );
@@ -169,12 +169,12 @@ export default function App() {
               {/* App Brand Header */}
               <div className="flex items-center justify-between pb-3 border-b border-slate-100">
                 <div className="flex items-center gap-3">
-                  <div className="w-10 h-10 rounded-2xl bg-blue-600 text-white font-black flex items-center justify-center text-lg shadow-md shadow-blue-500/30">
+                  <div className="w-10 h-10 rounded-2xl bg-indigo-600 text-white font-extrabold flex items-center justify-center text-lg shadow-sm">
                     P
                   </div>
                   <div>
-                    <div className="font-black text-slate-900 text-sm tracking-tight leading-none">PMS 2026</div>
-                    <div className="text-[11px] text-slate-500 font-semibold mt-1">QUẢN LÝ DỰ ÁN XÂY DỰNG</div>
+                    <div className="font-bold text-slate-900 text-sm tracking-tight leading-none">PMS 2026</div>
+                    <div className="text-[11px] text-slate-500 font-medium mt-1">Quản lý dự án xây dựng</div>
                   </div>
                 </div>
                 <button
@@ -187,8 +187,8 @@ export default function App() {
 
               {/* Navigation Menu Links */}
               <nav className="space-y-1">
-                <div className="pt-1 pb-1 text-[10px] uppercase tracking-wider font-extrabold text-slate-400 px-3">
-                  Tổng Quan & BI
+                <div className="pt-1 pb-1 text-xs font-semibold text-slate-400 px-3">
+                  Tổng quan & BI
                 </div>
 
                 <SidebarItem
@@ -199,13 +199,13 @@ export default function App() {
                   onClick={() => { setActiveTab('dashboard'); setIsSidebarOpen(false); }}
                 />
 
-                <div className="pt-3 pb-1 text-[10px] uppercase tracking-wider font-extrabold text-slate-400 px-3">
-                  5 Giai Đoạn Nghiệp Vụ
+                <div className="pt-3 pb-1 text-xs font-semibold text-slate-400 px-3">
+                  5 giai đoạn nghiệp vụ
                 </div>
 
                 <SidebarItem
                   icon={FileCheck2}
-                  label="GĐ 1: Khởi Tạo & Định Tuyến"
+                  label="GĐ 1: Khởi tạo & định tuyến"
                   sublabel="Auto-routing Nhóm A/B/C"
                   active={activeTab === 'stage1'}
                   onClick={() => { setActiveTab('stage1'); setIsSidebarOpen(false); }}
@@ -213,7 +213,7 @@ export default function App() {
 
                 <SidebarItem
                   icon={Calculator}
-                  label="GĐ 2: Thiết Kế & Dự Toán"
+                  label="GĐ 2: Thiết kế & dự toán"
                   sublabel="Áp định mức & Gantt Baseline"
                   active={activeTab === 'stage2'}
                   onClick={() => { setActiveTab('stage2'); setIsSidebarOpen(false); }}
@@ -221,7 +221,7 @@ export default function App() {
 
                 <SidebarItem
                   icon={FileSignature}
-                  label="GĐ 3: Đấu Thầu & Hợp Đồng"
+                  label="GĐ 3: Đấu thầu & hợp đồng"
                   sublabel="Năng lực nhà thầu & HĐ 1040"
                   active={activeTab === 'stage3'}
                   onClick={() => { setActiveTab('stage3'); setIsSidebarOpen(false); }}
@@ -229,7 +229,7 @@ export default function App() {
 
                 <SidebarItem
                   icon={HardHat}
-                  label="GĐ 4: Thi Công & Thanh Toán"
+                  label="GĐ 4: Thi công & thanh toán"
                   sublabel="E-Logbook GPS & Hard Block"
                   active={activeTab === 'stage4'}
                   onClick={() => { setActiveTab('stage4'); setIsSidebarOpen(false); }}
@@ -237,27 +237,27 @@ export default function App() {
 
                 <SidebarItem
                   icon={Archive}
-                  label="GĐ 5: Bàn Giao & Quyết Toán"
+                  label="GĐ 5: Bàn giao & quyết toán"
                   sublabel="Quyết toán NĐ 193 & Handover ZIP"
                   active={activeTab === 'stage5'}
                   onClick={() => { setActiveTab('stage5'); setIsSidebarOpen(false); }}
                 />
 
-                <div className="pt-3 pb-1 text-[10px] uppercase tracking-wider font-extrabold text-slate-400 px-3">
-                  Quy Trình & CSDL Quốc Gia
+                <div className="pt-3 pb-1 text-xs font-semibold text-slate-400 px-3">
+                  Quy trình & CSDL quốc gia
                 </div>
 
                 <SidebarItem
                   icon={GitCommitHorizontal}
-                  label="Quy Trình & Biểu Mẫu Số"
-                  sublabel="Blocker Nối Tiếp & Audit Trail"
+                  label="Quy trình & biểu mẫu số"
+                  sublabel="Blocker nối tiếp & Audit trail"
                   active={activeTab === 'workflowTemplates'}
                   onClick={() => { setActiveTab('workflowTemplates'); setIsSidebarOpen(false); }}
                 />
 
                 <SidebarItem
                   icon={Globe2}
-                  label="API CSDL Quốc Gia BXD"
+                  label="API CSDL quốc gia BXD"
                   sublabel="Chuẩn TT 39/2026/TT-BXD"
                   active={activeTab === 'nationalDb'}
                   onClick={() => { setActiveTab('nationalDb'); setIsSidebarOpen(false); }}
@@ -266,25 +266,20 @@ export default function App() {
                 {/* CÀI ĐẶT QUẢN TRỊ ADMIN - ĐẶT PHÍA DƯỚI API CSDL QUỐC GIA (ADMIN GUARD) */}
                 {currentUser.role === 'ADMIN' && (
                   <>
-                    <div className="pt-3 pb-1 text-[10px] uppercase tracking-wider font-extrabold text-purple-600 px-3 flex items-center gap-1">
-                      <Settings size={12} /> Quản Trị Hệ Thống
+                    <div className="pt-3 pb-1 text-xs font-semibold text-indigo-600 px-3 flex items-center gap-1">
+                      <Settings size={12} /> Quản trị hệ thống
                     </div>
 
                     <SidebarItem
                       icon={Settings}
-                      label="⚙️ Cài Đặt Hệ Thống & Drive"
-                      sublabel="Dành riêng cho ADMIN"
+                      label="⚙️ Cài đặt hệ thống & Drive"
+                      sublabel="Dành riêng cho Admin"
                       active={isAdminSettingsOpen}
                       onClick={() => { setIsAdminSettingsOpen(true); setIsSidebarOpen(false); }}
                     />
                   </>
                 )}
               </nav>
-            </div>
-
-            {/* Footer User Auth Info */}
-            <div className="p-4 border-t border-slate-200 bg-slate-50/50">
-              <UserAuthBar currentUser={currentUser} onUserSwitch={setCurrentUser} onLogout={handleLogout} />
             </div>
           </aside>
 
@@ -299,25 +294,25 @@ export default function App() {
                 >
                   <Menu size={22} />
                 </button>
-                <span className="font-extrabold text-sm md:text-base text-slate-900 truncate">
-                  PMS 2026 - QLDA Đầu Tư Xây Dựng (Chuẩn Luật 135/2025/QH15)
+                <span className="font-bold text-sm md:text-base text-slate-900 truncate">
+                  PMS 2026 - QLDA đầu tư xây dựng (Chuẩn Luật 135/2025/QH15)
                 </span>
 
                 {/* ADMIN SETTINGS BUTTON GÓC TRÁI (ADMIN GUARD) */}
                 {currentUser.role === 'ADMIN' && (
                   <button
                     onClick={() => setIsAdminSettingsOpen(true)}
-                    className="ml-2 px-3 py-1.5 bg-purple-100 hover:bg-purple-200 text-purple-950 border border-purple-300 font-extrabold text-xs rounded-xl transition-all shadow-2xs flex items-center gap-1.5 cursor-pointer"
-                    title="Cài đặt Hệ thống & Cấu hình Google Drive (Dành riêng cho ADMIN)"
+                    className="ml-2 px-3 py-1.5 bg-indigo-50 hover:bg-indigo-100 text-indigo-700 border border-indigo-200 font-semibold text-xs rounded-xl transition-all flex items-center gap-1.5 cursor-pointer"
+                    title="Cài đặt hệ thống & cấu hình Google Drive (Dành riêng cho Admin)"
                   >
-                    <Settings className="w-4 h-4 text-purple-700 animate-spin-slow" />
-                    <span className="hidden sm:inline">⚙️ Cài đặt Hệ thống</span>
+                    <Settings className="w-4 h-4 text-indigo-600" />
+                    <span className="hidden sm:inline">Cài đặt hệ thống</span>
                   </button>
                 )}
               </div>
 
-              {/* Desktop User Auth Controls */}
-              <div className="hidden lg:flex items-center gap-3">
+              {/* Single Unified User Auth Controls on Top Header */}
+              <div className="flex items-center gap-3">
                 <UserAuthBar currentUser={currentUser} onUserSwitch={setCurrentUser} onLogout={handleLogout} />
               </div>
             </header>

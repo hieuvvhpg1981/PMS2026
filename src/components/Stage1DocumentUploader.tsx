@@ -123,12 +123,12 @@ export default function Stage1DocumentUploader({
       {/* Upload Form */}
       <form onSubmit={handleUploadSubmit} className="bg-white p-5 rounded-xl border border-slate-200 shadow-sm space-y-4 text-xs">
         <h5 className="font-bold text-slate-900 text-sm flex items-center gap-2 border-b border-slate-100 pb-2">
-          <Upload className="w-4 h-4 text-blue-600" /> TẢI LÊN HỒ SƠ & VĂN BẢN NỘP BƯỚC {stepId}
+          <Upload className="w-4 h-4 text-indigo-600" /> Tải lên hồ sơ & văn bản nộp Bước {stepId}
         </h5>
 
         <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
           <div>
-            <label className="block text-slate-700 font-bold mb-1">LOẠI VĂN BẢN / HỒ SƠ YÊU CẦU *</label>
+            <label className="block text-sm font-medium text-slate-700 mb-1">Loại văn bản / hồ sơ yêu cầu *</label>
             <select
               value={selectedDocTypeId}
               onChange={e => setSelectedDocTypeId(e.target.value)}
@@ -136,14 +136,14 @@ export default function Stage1DocumentUploader({
             >
               {docsList.map(doc => (
                 <option key={doc.docTypeId} value={doc.docTypeId}>
-                  {doc.isMandatory ? '🔴 [BẮT BUỘC]' : '🔵 [BỔ SUNG]'} {doc.docTypeName}
+                  {doc.isMandatory ? '🔴 [Bắt buộc]' : '🔵 [Bổ sung]'} {doc.docTypeName}
                 </option>
               ))}
             </select>
           </div>
 
           <div>
-            <label className="block text-slate-700 font-bold mb-1">CÁN BỘ THỰC HIỆN NỘP</label>
+            <label className="block text-sm font-medium text-slate-700 mb-1">Cán bộ thực hiện nộp</label>
             <input
               type="text"
               value={uploaderName}
@@ -155,8 +155,8 @@ export default function Stage1DocumentUploader({
 
         {/* File Drag Drop Input */}
         <div>
-          <label className="block text-slate-700 font-bold mb-1">TỆP TÀI LIỆU HỒ SƠ (PDF, XLSX, DOCX, ZIP ≤ 50MB) *</label>
-          <div className="border-2 border-dashed border-slate-300 hover:border-blue-500 rounded-xl p-4 text-center transition-all bg-slate-50">
+          <label className="block text-sm font-medium text-slate-700 mb-1">Tệp tài liệu hồ sơ (PDF, XLSX, DOCX, ZIP ≤ 50MB) *</label>
+          <div className="border-2 border-dashed border-slate-300 hover:border-indigo-500 rounded-xl p-4 text-center transition-all bg-slate-50">
             <input
               type="file"
               onChange={e => setFileInput(e.target.files?.[0] || null)}
@@ -164,12 +164,12 @@ export default function Stage1DocumentUploader({
               id="stage1-file-input"
             />
             <label htmlFor="stage1-file-input" className="cursor-pointer flex flex-col items-center justify-center gap-1.5">
-              <Upload className="w-8 h-8 text-blue-500" />
+              <Upload className="w-8 h-8 text-indigo-500" />
               {fileInput ? (
-                <span className="font-bold text-emerald-700">{fileInput.name} ({(fileInput.size / (1024 * 1024)).toFixed(2)} MB)</span>
+                <span className="font-bold text-emerald-700 tabular-nums">{fileInput.name} ({(fileInput.size / (1024 * 1024)).toFixed(2)} MB)</span>
               ) : (
                 <>
-                  <span className="font-bold text-slate-700">Bấm để chọn tệp hoặc Kéo-Thả file vào đây</span>
+                  <span className="font-bold text-slate-700">Bấm để chọn tệp hoặc kéo-thả file vào đây</span>
                   <span className="text-[11px] text-slate-400">Hỗ trợ PDF, Excel, Word, CAD, ZIP mã hóa SmartCA</span>
                 </>
               )}
@@ -186,16 +186,16 @@ export default function Stage1DocumentUploader({
               className="w-4 h-4 text-emerald-600 rounded"
             />
             <ShieldCheck className="w-4 h-4 text-emerald-600" />
-            <span>Xác thực Ký số Chuyên dùng SmartCA-BXD trước khi nộp</span>
+            <span>Xác thực ký số chuyên dùng SmartCA-BXD trước khi nộp</span>
           </label>
 
           <button
             type="submit"
             disabled={isUploading}
-            className="w-full sm:w-auto bg-blue-600 hover:bg-blue-700 text-white font-bold px-6 py-2 rounded-xl transition-all shadow-sm flex items-center justify-center gap-1.5 disabled:opacity-50"
+            className="w-full sm:w-auto bg-indigo-600 hover:bg-indigo-700 text-white font-semibold px-6 py-2 rounded-xl transition-all shadow-sm flex items-center justify-center gap-1.5 disabled:opacity-50"
           >
             <Upload className="w-4 h-4" />
-            <span>{isUploading ? 'Đang Nộp Hồ Sơ...' : 'Nộp Hồ Sơ Về Ban QLDA'}</span>
+            <span>{isUploading ? 'Đang nộp hồ sơ...' : 'Nộp hồ sơ về Ban QLDA'}</span>
           </button>
         </div>
       </form>
@@ -203,8 +203,8 @@ export default function Stage1DocumentUploader({
       {/* Uploaded Documents List */}
       <div className="bg-white p-5 rounded-xl border border-slate-200 shadow-sm space-y-3 text-xs">
         <h5 className="font-bold text-slate-900 text-sm flex items-center justify-between border-b border-slate-100 pb-2">
-          <span className="flex items-center gap-2">
-            <FolderTree className="w-4 h-4 text-emerald-600" /> DANH SÁCH HỒ SƠ ĐÃ NỘP BƯỚC {stepId} ({currentStepDocs.length})
+          <span className="flex items-center gap-2 tabular-nums">
+            <FolderTree className="w-4 h-4 text-emerald-600" /> Danh sách hồ sơ đã nộp Bước {stepId} ({currentStepDocs.length})
           </span>
         </h5>
 
@@ -221,14 +221,14 @@ export default function Stage1DocumentUploader({
                   {getFileIcon(doc.fileName)}
                   <div>
                     <div className="font-bold text-slate-900">{doc.docTypeName}</div>
-                    <div className="text-[11px] text-slate-500 font-mono flex items-center gap-2">
+                    <div className="text-[11px] text-slate-500 font-mono tabular-nums flex items-center gap-2">
                       <span>{doc.fileName}</span>
                       <span>({doc.fileSizeMB} MB)</span>
                     </div>
                   </div>
                 </div>
 
-                <div className="flex items-center gap-3 text-[11px] text-slate-500 font-mono">
+                <div className="flex items-center gap-3 text-[11px] text-slate-500 font-mono tabular-nums">
                   <div className="flex items-center gap-1">
                     <User className="w-3.5 h-3.5 text-slate-400" /> {doc.uploaderName}
                   </div>

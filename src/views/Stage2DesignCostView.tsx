@@ -2,7 +2,7 @@ import React, { useState, useEffect } from 'react';
 import { PmsService, ProjectData, BoqItem, GanttTaskItem, InternalReviewRecord, ConstructionPermitRecord } from '../pms/T2_Services';
 import { PmsHandlers } from '../pms/T3_Handlers';
 import { DesignType, ApprovalStatus, STAGE2_DOCUMENT_TYPES } from '../pms/T0_Config';
-import { formatVND, safeNumber, safeString, checkEstimateExceedsTMDT, generateExcelTemplate, updateBoqRow, canEditProject, evaluateCostOverrunRisk206 } from '../pms/T1_Utils';
+import { formatVND, safeNumber, safeString, checkEstimateExceedsTMDT, generateExcelTemplate, updateBoqRow, canEditProject, evaluateCostOverrunRisk206, formatCurrencyInputMask, parseCurrencyInputMask, formatStatusOrCodeVN } from '../pms/T1_Utils';
 import { UserProfile } from '../pms/T2_Services';
 import Stage2DocumentUploader from '../components/Stage2DocumentUploader';
 import ExcelDragDropUploader from '../components/ExcelDragDropUploader';
@@ -319,32 +319,38 @@ export default function Stage2DesignCostView({ currentUser }: { currentUser?: Us
       )}
 
       {/* 3 Main Action Tabs */}
-      <div className="flex border-b border-slate-200 bg-white p-2 rounded-xl border">
+      <div className="flex border-b border-slate-200 bg-white p-1.5 rounded-xl border gap-1.5">
         <button
           onClick={() => setActiveTab('plan')}
-          className={`flex-1 py-2.5 px-4 text-xs font-bold rounded-lg transition-all flex items-center justify-center gap-2 ${
-            activeTab === 'plan' ? 'bg-blue-600 text-white shadow-sm' : 'text-slate-600 hover:bg-slate-50'
+          className={`flex-1 py-2.5 px-4 text-sm font-medium rounded-lg transition-all flex items-center justify-center gap-2 ${
+            activeTab === 'plan'
+              ? 'bg-indigo-50 text-indigo-700 border-b-2 border-indigo-600 font-semibold'
+              : 'text-slate-700 hover:bg-slate-50'
           }`}
         >
-          <CalendarDays className="w-4 h-4" /> BƯỚC 1: LẬP KẾ HOẠCH CHI TIẾT & KHLCNT
+          <CalendarDays className="w-4 h-4" /> Bước 1: Lập kế hoạch chi tiết & KHLCNT
         </button>
 
         <button
           onClick={() => setActiveTab('boq')}
-          className={`flex-1 py-2.5 px-4 text-xs font-bold rounded-lg transition-all flex items-center justify-center gap-2 ${
-            activeTab === 'boq' ? 'bg-blue-600 text-white shadow-sm' : 'text-slate-600 hover:bg-slate-50'
+          className={`flex-1 py-2.5 px-4 text-sm font-medium rounded-lg transition-all flex items-center justify-center gap-2 ${
+            activeTab === 'boq'
+              ? 'bg-indigo-50 text-indigo-700 border-b-2 border-indigo-600 font-semibold'
+              : 'text-slate-700 hover:bg-slate-50'
           }`}
         >
-          <Calculator className="w-4 h-4" /> BƯỚC 2: DỰ TOÁN BOQ & THIẾT KẾ
+          <Calculator className="w-4 h-4" /> Bước 2: Dự toán BOQ & thiết kế
         </button>
 
         <button
           onClick={() => setActiveTab('approval')}
-          className={`flex-1 py-2.5 px-4 text-xs font-bold rounded-lg transition-all flex items-center justify-center gap-2 ${
-            activeTab === 'approval' ? 'bg-blue-600 text-white shadow-sm' : 'text-slate-600 hover:bg-slate-50'
+          className={`flex-1 py-2.5 px-4 text-sm font-medium rounded-lg transition-all flex items-center justify-center gap-2 ${
+            activeTab === 'approval'
+              ? 'bg-indigo-50 text-indigo-700 border-b-2 border-indigo-600 font-semibold'
+              : 'text-slate-700 hover:bg-slate-50'
           }`}
         >
-          <UserCheck className="w-4 h-4" /> BƯỚC 3: THẨM ĐỊNH NỘI BỘ & PHÊ DUYỆT
+          <UserCheck className="w-4 h-4" /> Bước 3: Thẩm định nội bộ & phê duyệt
         </button>
       </div>
 
@@ -355,33 +361,33 @@ export default function Stage2DesignCostView({ currentUser }: { currentUser?: Us
             <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-3 border-b border-slate-100 pb-3">
               <div>
                 <h3 className="text-base font-bold text-slate-900 flex items-center gap-2">
-                  <CalendarDays className="w-5 h-5 text-blue-600" />
-                  KẾ HOẠCH TIẾN ĐỘ BASELINE GANTT & PHÂN BỔ NGUỒN LỰC
+                  <CalendarDays className="w-5 h-5 text-indigo-600" />
+                  Kế hoạch tiến độ Baseline Gantt & phân bổ nguồn lực
                 </h3>
-                <p className="text-xs text-slate-500">Cho phép Chỉnh sửa Inline trực tiếp hoặc Thêm/Xóa dòng tiến độ</p>
+                <p className="text-xs text-slate-500">Cho phép chỉnh sửa inline trực tiếp hoặc thêm/xóa dòng tiến độ</p>
               </div>
 
               {/* Template Download & Import Buttons */}
               <div className="flex items-center gap-2">
                 <button
                   onClick={() => handleDownloadTemplate('GANTT')}
-                  className="bg-slate-100 hover:bg-slate-200 text-slate-700 text-xs font-bold px-3 py-2 rounded-xl transition-all border border-slate-300 flex items-center gap-1.5"
+                  className="bg-white border border-slate-300 text-slate-700 hover:bg-slate-50 text-xs font-medium px-3 py-2 rounded-xl transition-all flex items-center gap-1.5 shadow-2xs"
                 >
-                  <Download className="w-4 h-4 text-blue-600" /> Tải Template Kế hoạch
+                  <Download className="w-4 h-4 text-slate-600" /> Tải Template kế hoạch
                 </button>
 
                 <button
                   onClick={() => handleOpenExcelImport('GANTT')}
-                  className="bg-emerald-600 hover:bg-emerald-700 text-white text-xs font-bold px-3 py-2 rounded-xl transition-all shadow-sm flex items-center gap-1.5"
+                  className="bg-white border border-slate-300 text-slate-700 hover:bg-slate-50 text-xs font-medium px-3 py-2 rounded-xl transition-all flex items-center gap-1.5 shadow-2xs"
                 >
-                  <Upload className="w-4 h-4" /> Upload File Excel Nhập Liệu
+                  <Upload className="w-4 h-4 text-slate-600" /> Upload Excel nhập liệu
                 </button>
 
                 <button
                   onClick={handleSaveGanttPlan}
-                  className="bg-blue-600 hover:bg-blue-700 text-white text-xs font-bold px-4 py-2 rounded-xl transition-all shadow-sm flex items-center gap-1.5"
+                  className="bg-indigo-600 hover:bg-indigo-700 text-white text-xs font-semibold px-4 py-2 rounded-xl transition-all shadow-sm flex items-center gap-1.5"
                 >
-                  <CheckCircle className="w-4 h-4" /> Lưu Kế Hoạch
+                  <CheckCircle className="w-4 h-4" /> Lưu kế hoạch
                 </button>
               </div>
             </div>
@@ -389,14 +395,14 @@ export default function Stage2DesignCostView({ currentUser }: { currentUser?: Us
             {/* Gantt Tasks Table with Action Column */}
             <div className="overflow-x-auto border border-slate-200 rounded-xl">
               <table className="w-full text-xs text-left text-slate-600">
-                <thead className="bg-slate-100 text-slate-700 uppercase font-bold border-b border-slate-200">
+                <thead className="bg-slate-50 text-slate-700 font-semibold border-b border-slate-200">
                   <tr>
                     <th className="px-3 py-2.5">Mã CV</th>
                     <th className="px-3 py-2.5">Nội dung công việc chi tiết</th>
                     <th className="px-3 py-2.5">Đơn vị chủ trì</th>
                     <th className="px-3 py-2.5">Ngày bắt đầu</th>
                     <th className="px-3 py-2.5">Ngày hoàn thành</th>
-                    <th className="px-3 py-2.5 text-right">Ngân sách phân bổ (VND)</th>
+                    <th className="px-3 py-2.5 text-right">Ngân sách phân bổ (VNĐ)</th>
                     <th className="px-3 py-2.5 text-center">Thao tác</th>
                   </tr>
                 </thead>
@@ -405,19 +411,19 @@ export default function Stage2DesignCostView({ currentUser }: { currentUser?: Us
                     const isEditing = editingGanttTaskId === t.taskId;
                     return (
                       <tr key={t.taskId} className="hover:bg-slate-50">
-                        <td className="px-3 py-2 font-mono font-bold text-blue-700">
+                        <td className="px-3 py-2 font-mono tabular-nums font-bold text-indigo-700">
                           {isEditing ? (
                             <input
                               type="text"
                               value={draftGanttTask.taskId || ''}
                               onChange={e => setDraftGanttTask({ ...draftGanttTask, taskId: e.target.value })}
-                              className="w-20 px-1.5 py-0.5 border rounded font-mono"
+                              className="w-20 px-1.5 py-0.5 border rounded font-mono tabular-nums"
                             />
                           ) : (
                             t.taskId
                           )}
                         </td>
-                        <td className="px-3 py-2 font-bold text-slate-900">
+                        <td className="px-3 py-2 font-semibold text-slate-900">
                           {isEditing ? (
                             <input
                               type="text"
@@ -441,37 +447,38 @@ export default function Stage2DesignCostView({ currentUser }: { currentUser?: Us
                             t.assignedDept
                           )}
                         </td>
-                        <td className="px-3 py-2 font-mono">
+                        <td className="px-3 py-2 font-mono tabular-nums">
                           {isEditing ? (
                             <input
                               type="date"
                               value={draftGanttTask.startDate || ''}
                               onChange={e => setDraftGanttTask({ ...draftGanttTask, startDate: e.target.value })}
-                              className="px-1.5 py-0.5 border rounded font-mono"
+                              className="px-1.5 py-0.5 border rounded font-mono tabular-nums"
                             />
                           ) : (
                             t.startDate
                           )}
                         </td>
-                        <td className="px-3 py-2 font-mono">
+                        <td className="px-3 py-2 font-mono tabular-nums">
                           {isEditing ? (
                             <input
                               type="date"
                               value={draftGanttTask.endDate || ''}
                               onChange={e => setDraftGanttTask({ ...draftGanttTask, endDate: e.target.value })}
-                              className="px-1.5 py-0.5 border rounded font-mono"
+                              className="px-1.5 py-0.5 border rounded font-mono tabular-nums"
                             />
                           ) : (
                             t.endDate
                           )}
                         </td>
-                        <td className="px-3 py-2 text-right font-mono font-bold text-slate-900">
+                        <td className="px-3 py-2 text-right font-mono tabular-nums font-bold text-slate-900">
                           {isEditing ? (
                             <input
-                              type="number"
-                              value={draftGanttTask.budgetAllocated || 0}
-                              onChange={e => setDraftGanttTask({ ...draftGanttTask, budgetAllocated: Number(e.target.value) || 0 })}
-                              className="w-28 px-1.5 py-0.5 border rounded text-right font-mono"
+                              type="text"
+                              inputMode="numeric"
+                              value={formatCurrencyInputMask(draftGanttTask.budgetAllocated || 0)}
+                              onChange={e => setDraftGanttTask({ ...draftGanttTask, budgetAllocated: parseCurrencyInputMask(e.target.value) })}
+                              className="w-32 px-1.5 py-0.5 border rounded text-right font-mono tabular-nums"
                             />
                           ) : (
                             formatVND(t.budgetAllocated)
@@ -499,7 +506,7 @@ export default function Stage2DesignCostView({ currentUser }: { currentUser?: Us
                             <div className="flex justify-center gap-2">
                               <button
                                 onClick={() => handleEditGanttTask(t)}
-                                className="text-blue-600 hover:text-blue-800 p-1"
+                                className="text-indigo-600 hover:text-indigo-800 p-1"
                                 title="Chỉnh sửa inline"
                               >
                                 <Pencil className="w-4 h-4" />
@@ -525,9 +532,9 @@ export default function Stage2DesignCostView({ currentUser }: { currentUser?: Us
             <div className="pt-2">
               <button
                 onClick={handleAddNewGanttTaskRow}
-                className="w-full bg-slate-50 hover:bg-blue-50/60 text-blue-700 border-2 border-dashed border-blue-200 font-bold text-xs py-2.5 rounded-xl transition-all flex items-center justify-center gap-2"
+                className="w-full bg-slate-50 hover:bg-indigo-50/60 text-indigo-700 border-2 border-dashed border-indigo-200 font-semibold text-xs py-2.5 rounded-xl transition-all flex items-center justify-center gap-2"
               >
-                <PlusCircle className="w-4 h-4" /> [+ THÊM CÔNG VIỆC TIẾN ĐỘ MỚI]
+                <PlusCircle className="w-4 h-4" /> Thêm công việc tiến độ mới
               </button>
             </div>
           </div>
@@ -551,33 +558,33 @@ export default function Stage2DesignCostView({ currentUser }: { currentUser?: Us
             <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-3 border-b border-slate-100 pb-3">
               <div>
                 <h3 className="text-base font-bold text-slate-900 flex items-center gap-2">
-                  <Calculator className="w-5 h-5 text-blue-600" />
-                  CẤU HÌNH THIẾT KẾ & BẢNG KHỐI LƯỢNG BOQ CHI TIẾT
+                  <Calculator className="w-5 h-5 text-indigo-600" />
+                  Cấu hình thiết kế & bảng khối lượng BOQ chi tiết
                 </h3>
-                <p className="text-xs text-slate-500">Cột Thao tác Sửa/Xóa Inline trực tiếp & Tự động tính toán lại Dự toán</p>
+                <p className="text-xs text-slate-500">Cột thao tác sửa/xóa inline trực tiếp & tự động tính toán lại dự toán</p>
               </div>
 
               {/* Template Download & Import Buttons */}
               <div className="flex items-center gap-2">
                 <button
                   onClick={() => handleDownloadTemplate('BOQ')}
-                  className="bg-slate-100 hover:bg-slate-200 text-slate-700 text-xs font-bold px-3 py-2 rounded-xl transition-all border border-slate-300 flex items-center gap-1.5"
+                  className="bg-white border border-slate-300 text-slate-700 hover:bg-slate-50 text-xs font-medium px-3 py-2 rounded-xl transition-all flex items-center gap-1.5 shadow-2xs"
                 >
-                  <Download className="w-4 h-4 text-blue-600" /> Tải Template BOQ
+                  <Download className="w-4 h-4 text-slate-600" /> Tải Template BOQ
                 </button>
 
                 <button
                   onClick={() => handleOpenExcelImport('BOQ')}
-                  className="bg-emerald-600 hover:bg-emerald-700 text-white text-xs font-bold px-3 py-2 rounded-xl transition-all shadow-sm flex items-center gap-1.5"
+                  className="bg-white border border-slate-300 text-slate-700 hover:bg-slate-50 text-xs font-medium px-3 py-2 rounded-xl transition-all flex items-center gap-1.5 shadow-2xs"
                 >
-                  <Upload className="w-4 h-4" /> Upload File Excel Nhập Liệu
+                  <Upload className="w-4 h-4 text-slate-600" /> Upload Excel nhập liệu
                 </button>
 
                 <button
                   onClick={handleSaveBoqEstimate}
-                  className="bg-blue-600 hover:bg-blue-700 text-white text-xs font-bold px-4 py-2 rounded-xl transition-all shadow-sm flex items-center gap-1.5"
+                  className="bg-indigo-600 hover:bg-indigo-700 text-white text-xs font-semibold px-4 py-2 rounded-xl transition-all shadow-sm flex items-center gap-1.5"
                 >
-                  <CheckCircle className="w-4 h-4" /> Lưu & Cập Nhật BOQ
+                  <CheckCircle className="w-4 h-4" /> Lưu & cập nhật BOQ
                 </button>
               </div>
             </div>
@@ -585,67 +592,73 @@ export default function Stage2DesignCostView({ currentUser }: { currentUser?: Us
             {/* Design & Consultant Config */}
             <div className="grid grid-cols-1 sm:grid-cols-3 gap-4 bg-slate-50 p-4 rounded-xl border border-slate-200 text-xs">
               <div>
-                <label className="block font-bold text-slate-700 uppercase mb-1">Loại Hình Thiết Kế</label>
+                <label className="block text-sm font-medium text-slate-700 mb-1">Loại hình thiết kế</label>
                 <select
                   value={designType}
                   onChange={e => setDesignType(e.target.value as any)}
-                  className="w-full px-3 py-2 border border-slate-300 rounded-xl bg-white outline-none font-semibold"
+                  className="w-full px-3 py-2 border border-slate-300 rounded-xl bg-white outline-none font-semibold text-sm"
                 >
-                  <option value={DesignType.THIET_KE_BVTC}>Thiết kế Bản vẽ thi công (TK BVTC)</option>
+                  <option value={DesignType.THIET_KE_BVTC}>Thiết kế bản vẽ thi công (TK BVTC)</option>
                   <option value={DesignType.THIET_KE_CO_SO}>Thiết kế cơ sở (TKCS)</option>
                 </select>
               </div>
 
               <div>
-                <label className="block font-bold text-slate-700 uppercase mb-1">Hình Thức Thực Hiện</label>
+                <label className="block text-sm font-medium text-slate-700 mb-1">Hình thức thực hiện</label>
                 <select
                   value={consultingMode}
                   onChange={e => setConsultingMode(e.target.value as any)}
-                  className="w-full px-3 py-2 border border-slate-300 rounded-xl bg-white outline-none font-semibold"
+                  className="w-full px-3 py-2 border border-slate-300 rounded-xl bg-white outline-none font-semibold text-sm"
                 >
-                  <option value="THUÊ_TƯ_VẤN">Thuê Tổ chức Tư vấn Thiết kế</option>
-                  <option value="TỰ_THỰC_HIỆN">Chủ đầu tư / Ban QLDA Tự thực hiện</option>
+                  <option value="THUÊ_TƯ_VẤN">Thuê tổ chức tư vấn thiết kế</option>
+                  <option value="TỰ_THỰC_HIỆN">Chủ đầu tư / Ban QLDA tự thực hiện</option>
                 </select>
               </div>
 
               <div>
-                <label className="block font-bold text-slate-700 uppercase mb-1">Tên Đơn Vị Tư Vấn (nếu thuê)</label>
+                <label className="block text-sm font-medium text-slate-700 mb-1">Tên đơn vị tư vấn (nếu thuê)</label>
                 <input
                   type="text"
                   value={consultantName}
                   onChange={e => setConsultantName(e.target.value)}
                   placeholder="Nhập tên đơn vị tư vấn..."
-                  className="w-full px-3 py-2 border border-slate-300 rounded-xl bg-white outline-none"
+                  className="w-full px-3 py-2 border border-slate-300 rounded-xl bg-white outline-none text-sm"
                 />
               </div>
             </div>
 
             {/* Add New BOQ Item Quick Form */}
             <div className="bg-slate-50 p-4 rounded-xl border border-slate-200 space-y-3">
-              <div className="text-xs font-bold text-slate-700 uppercase">THÊM NHANH HẠNG MỤC BOQ</div>
+              <div className="text-sm font-semibold text-slate-800">Thêm nhanh hạng mục BOQ</div>
               <div className="grid grid-cols-1 sm:grid-cols-6 gap-3 text-xs">
                 <div>
-                  <label className="block font-semibold text-slate-600 mb-1">Mã Định Mức</label>
-                  <input type="text" value={newItemCode} onChange={e => setNewItemCode(e.target.value)} className="w-full px-2.5 py-1.5 border rounded-lg bg-white font-mono" />
+                  <label className="block text-sm font-medium text-slate-700 mb-1">Mã định mức</label>
+                  <input type="text" value={newItemCode} onChange={e => setNewItemCode(e.target.value)} className="w-full px-2.5 py-2 border border-slate-300 rounded-lg bg-white font-mono tabular-nums" />
                 </div>
                 <div className="sm:col-span-2">
-                  <label className="block font-semibold text-slate-600 mb-1">Tên Công Việc</label>
-                  <input type="text" value={newItemName} onChange={e => setNewItemName(e.target.value)} className="w-full px-2.5 py-1.5 border rounded-lg bg-white" />
+                  <label className="block text-sm font-medium text-slate-700 mb-1">Tên công việc</label>
+                  <input type="text" value={newItemName} onChange={e => setNewItemName(e.target.value)} className="w-full px-2.5 py-2 border border-slate-300 rounded-lg bg-white" />
                 </div>
                 <div>
-                  <label className="block font-semibold text-slate-600 mb-1">Đơn Vị / Khối Lượng</label>
+                  <label className="block text-sm font-medium text-slate-700 mb-1">Đơn vị / Khối lượng</label>
                   <div className="flex gap-1">
-                    <input type="text" value={newItemUnit} onChange={e => setNewItemUnit(e.target.value)} className="w-16 px-2 py-1.5 border rounded-lg bg-white" />
-                    <input type="number" value={newItemQty} onChange={e => setNewItemQty(Number(e.target.value) || 0)} className="w-full px-2 py-1.5 border rounded-lg bg-white font-mono" />
+                    <input type="text" value={newItemUnit} onChange={e => setNewItemUnit(e.target.value)} className="w-16 px-2 py-2 border border-slate-300 rounded-lg bg-white" />
+                    <input type="number" value={newItemQty} onChange={e => setNewItemQty(Number(e.target.value) || 0)} className="w-full px-2 py-2 border border-slate-300 rounded-lg bg-white font-mono tabular-nums" />
                   </div>
                 </div>
                 <div>
-                  <label className="block font-semibold text-slate-600 mb-1">Đơn Giá (VND)</label>
-                  <input type="number" value={newItemPrice} onChange={e => setNewItemPrice(Number(e.target.value) || 0)} className="w-full px-2 py-1.5 border rounded-lg bg-white font-mono" />
+                  <label className="block text-sm font-medium text-slate-700 mb-1">Đơn giá (VNĐ)</label>
+                  <input
+                    type="text"
+                    inputMode="numeric"
+                    value={formatCurrencyInputMask(newItemPrice)}
+                    onChange={e => setNewItemPrice(parseCurrencyInputMask(e.target.value))}
+                    className="w-full px-2 py-2 border border-slate-300 rounded-lg bg-white font-mono tabular-nums font-bold"
+                  />
                 </div>
                 <div className="flex items-end">
-                  <button onClick={handleAddBoqItemFromForm} type="button" className="w-full bg-emerald-600 hover:bg-emerald-700 text-white text-xs font-bold py-2 rounded-lg transition-all flex items-center justify-center gap-1">
-                    <Plus className="w-3.5 h-3.5" /> Thêm Hạng Mục
+                  <button onClick={handleAddBoqItemFromForm} type="button" className="w-full bg-indigo-600 hover:bg-indigo-700 text-white text-xs font-semibold py-2 rounded-lg transition-all flex items-center justify-center gap-1">
+                    <Plus className="w-3.5 h-3.5" /> Thêm hạng mục
                   </button>
                 </div>
               </div>
@@ -654,15 +667,15 @@ export default function Stage2DesignCostView({ currentUser }: { currentUser?: Us
             {/* BOQ Table List with Action Column */}
             <div className="overflow-x-auto border border-slate-200 rounded-xl">
               <table className="w-full text-xs text-left text-slate-600">
-                <thead className="bg-slate-100 text-slate-700 uppercase font-bold border-b border-slate-200">
+                <thead className="bg-slate-50 text-slate-700 font-semibold border-b border-slate-200">
                   <tr>
                     <th className="px-3 py-2.5">STT / Mã ĐM</th>
-                    <th className="px-3 py-2.5">Tên Công Tác / Chi Phí</th>
+                    <th className="px-3 py-2.5">Tên công tác / Chi phí</th>
                     <th className="px-3 py-2.5 text-center">ĐVT</th>
-                    <th className="px-3 py-2.5 text-right">Khối Lượng</th>
-                    <th className="px-3 py-2.5 text-right">Đơn Giá (VND)</th>
-                    <th className="px-3 py-2.5 text-right">Thành Tiền (VND)</th>
-                    <th className="px-3 py-2.5 text-center">Thao Tác</th>
+                    <th className="px-3 py-2.5 text-right">Khối lượng</th>
+                    <th className="px-3 py-2.5 text-right">Đơn giá (VNĐ)</th>
+                    <th className="px-3 py-2.5 text-right">Thành tiền (VNĐ)</th>
+                    <th className="px-3 py-2.5 text-center">Thao tác</th>
                   </tr>
                 </thead>
                 <tbody className="divide-y divide-slate-100 font-medium">
@@ -670,19 +683,19 @@ export default function Stage2DesignCostView({ currentUser }: { currentUser?: Us
                     const isEditing = editingBoqItemId === item.itemId;
                     return (
                       <tr key={item.itemId} className="hover:bg-slate-50">
-                        <td className="px-3 py-2 font-mono font-bold text-blue-700">
+                        <td className="px-3 py-2 font-mono tabular-nums font-bold text-indigo-700">
                           {isEditing ? (
                             <input
                               type="text"
                               value={draftBoqItem.itemCode || ''}
                               onChange={e => setDraftBoqItem({ ...draftBoqItem, itemCode: e.target.value })}
-                              className="w-20 px-1.5 py-0.5 border rounded font-mono"
+                              className="w-20 px-1.5 py-0.5 border rounded font-mono tabular-nums"
                             />
                           ) : (
                             item.itemCode
                           )}
                         </td>
-                        <td className="px-3 py-2 font-bold text-slate-900">
+                        <td className="px-3 py-2 font-semibold text-slate-900">
                           {isEditing ? (
                             <input
                               type="text"
@@ -706,31 +719,32 @@ export default function Stage2DesignCostView({ currentUser }: { currentUser?: Us
                             item.unit
                           )}
                         </td>
-                        <td className="px-3 py-2 text-right font-mono font-bold text-slate-900">
+                        <td className="px-3 py-2 text-right font-mono tabular-nums font-bold text-slate-900">
                           {isEditing ? (
                             <input
                               type="number"
                               value={draftBoqItem.quantity || 0}
                               onChange={e => setDraftBoqItem({ ...draftBoqItem, quantity: Number(e.target.value) || 0 })}
-                              className="w-20 px-1.5 py-0.5 border rounded text-right font-mono font-bold"
+                              className="w-20 px-1.5 py-0.5 border rounded text-right font-mono tabular-nums font-bold"
                             />
                           ) : (
-                            item.quantity.toLocaleString()
+                            item.quantity.toLocaleString('vi-VN')
                           )}
                         </td>
-                        <td className="px-3 py-2 text-right font-mono text-slate-700">
+                        <td className="px-3 py-2 text-right font-mono tabular-nums text-slate-700">
                           {isEditing ? (
                             <input
-                              type="number"
-                              value={draftBoqItem.unitPrice || 0}
-                              onChange={e => setDraftBoqItem({ ...draftBoqItem, unitPrice: Number(e.target.value) || 0 })}
-                              className="w-28 px-1.5 py-0.5 border rounded text-right font-mono"
+                              type="text"
+                              inputMode="numeric"
+                              value={formatCurrencyInputMask(draftBoqItem.unitPrice || 0)}
+                              onChange={e => setDraftBoqItem({ ...draftBoqItem, unitPrice: parseCurrencyInputMask(e.target.value) })}
+                              className="w-32 px-1.5 py-0.5 border rounded text-right font-mono tabular-nums"
                             />
                           ) : (
                             formatVND(item.unitPrice)
                           )}
                         </td>
-                        <td className="px-3 py-2 text-right font-mono font-bold text-emerald-700">
+                        <td className="px-3 py-2 text-right font-mono tabular-nums font-bold text-emerald-700">
                           {isEditing ? (
                             formatVND((safeNumber(draftBoqItem.quantity) * safeNumber(draftBoqItem.unitPrice)))
                           ) : (
@@ -759,7 +773,7 @@ export default function Stage2DesignCostView({ currentUser }: { currentUser?: Us
                             <div className="flex justify-center gap-2">
                               <button
                                 onClick={() => handleEditBoqItem(item)}
-                                className="text-blue-600 hover:text-blue-800 p-1"
+                                className="text-indigo-600 hover:text-indigo-800 p-1"
                                 title="Chỉnh sửa inline"
                               >
                                 <Pencil className="w-4 h-4" />
@@ -785,48 +799,48 @@ export default function Stage2DesignCostView({ currentUser }: { currentUser?: Us
             <div className="pt-2">
               <button
                 onClick={handleAddNewBoqRow}
-                className="w-full bg-slate-50 hover:bg-emerald-50/60 text-emerald-700 border-2 border-dashed border-emerald-300 font-bold text-xs py-2.5 rounded-xl transition-all flex items-center justify-center gap-2"
+                className="w-full bg-slate-50 hover:bg-indigo-50/60 text-indigo-700 border-2 border-dashed border-indigo-200 font-semibold text-xs py-2.5 rounded-xl transition-all flex items-center justify-center gap-2"
               >
-                <PlusCircle className="w-4 h-4" /> [+ THÊM HẠNG MỤC BOQ THỦ CÔNG MỚI]
+                <PlusCircle className="w-4 h-4" /> Thêm hạng mục BOQ thủ công mới
               </button>
             </div>
 
             {/* Total BOQ Cost Summary Box (7 Khoản mục Chi phí theo NĐ 206/2026/NĐ-CP) */}
-            <div className="bg-blue-50/50 p-4 rounded-xl border border-blue-200 text-xs space-y-2">
-              <div className="text-[11px] font-black text-blue-900 uppercase tracking-wider pb-1 border-b border-blue-200">
-                TỔNG HỢP DỰ TOÁN 7 KHOẢN MỤC CHI PHÍ (NGHỊ ĐỊNH 206/2026/NĐ-CP & TT 38/2026/TT-BXD)
+            <div className="bg-indigo-50/40 p-4 rounded-xl border border-indigo-200 text-xs space-y-2">
+              <div className="text-xs font-bold text-indigo-950 pb-1 border-b border-indigo-200">
+                Tổng hợp dự toán 7 khoản mục chi phí (Nghị định 206/2026/NĐ-CP & TT 38/2026/TT-BXD)
               </div>
-              <div className="flex justify-between font-semibold text-slate-700 border-b border-blue-100 pb-1.5">
+              <div className="flex justify-between font-semibold text-slate-700 border-b border-indigo-100 pb-1.5">
                 <span>1. Chi phí bồi thường, hỗ trợ & tái định cư (G_GPMB):</span>
-                <span className="font-mono">{formatVND(boqSummary.chiPhiGpmb)}</span>
+                <span className="font-mono tabular-nums">{formatVND(boqSummary.chiPhiGpmb)}</span>
               </div>
-              <div className="flex justify-between font-bold text-slate-800 border-b border-blue-100 pb-1.5">
-                <span>2. Chi phí Xây dựng trực tiếp (G_XD):</span>
-                <span className="font-mono text-sm">{formatVND(boqSummary.chiPhiXayLap)}</span>
+              <div className="flex justify-between font-bold text-slate-800 border-b border-indigo-100 pb-1.5">
+                <span>2. Chi phí xây dựng trực tiếp (G_XD):</span>
+                <span className="font-mono tabular-nums text-sm">{formatVND(boqSummary.chiPhiXayLap)}</span>
               </div>
-              <div className="flex justify-between font-bold text-slate-800 border-b border-blue-100 pb-1.5">
-                <span>3. Chi phí Thiết bị công nghệ (G_TB):</span>
-                <span className="font-mono text-sm">{formatVND(boqSummary.chiPhiThietBi)}</span>
+              <div className="flex justify-between font-bold text-slate-800 border-b border-indigo-100 pb-1.5">
+                <span>3. Chi phí thiết bị công nghệ (G_TB):</span>
+                <span className="font-mono tabular-nums text-sm">{formatVND(boqSummary.chiPhiThietBi)}</span>
               </div>
-              <div className="flex justify-between text-slate-700 border-b border-blue-100 pb-1.5">
-                <span>4. Chi phí Quản lý dự án (G_QLDA - Định mức 2.45%):</span>
-                <span className="font-mono">{formatVND(boqSummary.chiPhiQuanLyDuAn)}</span>
+              <div className="flex justify-between text-slate-700 border-b border-indigo-100 pb-1.5">
+                <span>4. Chi phí quản lý dự án (G_QLDA - Định mức 2.45%):</span>
+                <span className="font-mono tabular-nums">{formatVND(boqSummary.chiPhiQuanLyDuAn)}</span>
               </div>
-              <div className="flex justify-between text-slate-700 border-b border-blue-100 pb-1.5">
-                <span>5. Chi phí Tư vấn đầu tư xây dựng (G_TV - Định mức 4.15%):</span>
-                <span className="font-mono">{formatVND(boqSummary.chiPhiTuVan)}</span>
+              <div className="flex justify-between text-slate-700 border-b border-indigo-100 pb-1.5">
+                <span>5. Chi phí tư vấn đầu tư xây dựng (G_TV - Định mức 4.15%):</span>
+                <span className="font-mono tabular-nums">{formatVND(boqSummary.chiPhiTuVan)}</span>
               </div>
-              <div className="flex justify-between text-slate-700 border-b border-blue-100 pb-1.5">
-                <span>6. Chi phí Khác & Hạng mục chung (G_K - 1.80%):</span>
-                <span className="font-mono">{formatVND(boqSummary.chiPhiKhac)}</span>
+              <div className="flex justify-between text-slate-700 border-b border-indigo-100 pb-1.5">
+                <span>6. Chi phí khác & hạng mục chung (G_K - 1.80%):</span>
+                <span className="font-mono tabular-nums">{formatVND(boqSummary.chiPhiKhac)}</span>
               </div>
               <div className="flex justify-between text-slate-700">
-                <span>7. Chi phí Dự phòng (G_DP1 phát sinh KL: {formatVND(boqSummary.chiPhiDuPhongPhatSinh)} + G_DP2 trượt giá: {formatVND(boqSummary.chiPhiDuPhongTruotGia)}):</span>
-                <span className="font-mono font-bold">{formatVND(boqSummary.chiPhiDuPhong)}</span>
+                <span className="tabular-nums">7. Chi phí dự phòng (G_DP1 phát sinh KL: {formatVND(boqSummary.chiPhiDuPhongPhatSinh)} + G_DP2 trượt giá: {formatVND(boqSummary.chiPhiDuPhongTruotGia)}):</span>
+                <span className="font-mono tabular-nums font-bold">{formatVND(boqSummary.chiPhiDuPhong)}</span>
               </div>
-              <div className="flex justify-between text-sm font-extrabold text-blue-900 pt-2 border-t-2 border-blue-300">
-                <span>TỔNG DỰ TOÁN XÂY DỰNG CÔNG TRÌNH (7 KHOẢN MỤC NĐ 206/2026):</span>
-                <span className="font-mono text-base">{formatVND(boqSummary.tongDuToanBoq)}</span>
+              <div className="flex justify-between text-sm font-extrabold text-indigo-950 pt-2 border-t-2 border-indigo-300">
+                <span>Tổng dự toán xây dựng công trình (7 khoản mục NĐ 206/2026):</span>
+                <span className="font-mono tabular-nums text-base">{formatVND(boqSummary.tongDuToanBoq)}</span>
               </div>
 
               {/* 3-Tier Early Warning Guardrail (NĐ 206/2026) */}
@@ -838,7 +852,7 @@ export default function Stage2DesignCostView({ currentUser }: { currentUser?: Us
                   : 'bg-emerald-100 border-emerald-400 text-emerald-900'
               }`}>
                 <span>{overrunRisk206.message}</span>
-                <span className="font-mono px-2 py-0.5 rounded bg-white/80 text-[11px]">
+                <span className="font-mono tabular-nums px-2 py-0.5 rounded bg-white/80 text-[11px]">
                   Sử dụng TMĐT: {overrunRisk206.tmdtUsagePct}%
                 </span>
               </div>
@@ -864,17 +878,17 @@ export default function Stage2DesignCostView({ currentUser }: { currentUser?: Us
             {/* Form Approval Submit */}
             <div className="bg-white p-6 rounded-2xl border border-slate-200 shadow-sm space-y-5">
               <h3 className="text-base font-bold text-slate-900 flex items-center gap-2 border-b border-slate-100 pb-3">
-                <UserCheck className="w-5 h-5 text-blue-600" />
-                HỘI ĐỒNG THẨM ĐỊNH NỘI BỘ PHÊ DUYỆT THIẾT KẾ & DỰ TOÁN
+                <UserCheck className="w-5 h-5 text-indigo-600" />
+                Hội đồng thẩm định nội bộ phê duyệt thiết kế & dự toán
               </h3>
 
               <div className="space-y-4 text-xs">
                 <div>
-                  <label className="block font-bold text-slate-700 uppercase mb-1">Phòng Ban Thẩm Định Trình Duyệt</label>
+                  <label className="block text-sm font-medium text-slate-700 mb-1">Phòng ban thẩm định trình duyệt</label>
                   <select
                     value={reviewerDept}
                     onChange={e => setReviewerDept(e.target.value)}
-                    className="w-full px-3.5 py-2 border border-slate-300 rounded-xl bg-white font-semibold outline-none"
+                    className="w-full px-3.5 py-2 border border-slate-300 rounded-xl bg-white font-semibold outline-none text-sm"
                   >
                     <option value="Phòng Kế hoạch - Tài chính">Phòng Kế hoạch - Tài chính</option>
                     <option value="Phòng Kỹ thuật & Thẩm định">Phòng Kỹ thuật & Thẩm định</option>
@@ -883,55 +897,55 @@ export default function Stage2DesignCostView({ currentUser }: { currentUser?: Us
                 </div>
 
                 <div>
-                  <label className="block font-bold text-slate-700 uppercase mb-1">Người Chủ Trì Thẩm Định / Ký Số</label>
+                  <label className="block text-sm font-medium text-slate-700 mb-1">Người chủ trì thẩm định / Ký số</label>
                   <input
                     type="text"
                     value={reviewerName}
                     onChange={e => setReviewerName(e.target.value)}
-                    className="w-full px-3.5 py-2 border border-slate-300 rounded-xl bg-white outline-none font-semibold"
+                    className="w-full px-3.5 py-2 border border-slate-300 rounded-xl bg-white outline-none font-semibold text-sm"
                   />
                 </div>
 
                 <div>
-                  <label className="block font-bold text-slate-700 uppercase mb-1">Quyết Định Thẩm Định</label>
+                  <label className="block text-sm font-medium text-slate-700 mb-1">Quyết định thẩm định</label>
                   <select
                     value={reviewStatus}
                     onChange={e => setReviewStatus(e.target.value as any)}
-                    className="w-full px-3.5 py-2 border border-slate-300 rounded-xl bg-white font-bold outline-none"
+                    className="w-full px-3.5 py-2 border border-slate-300 rounded-xl bg-white font-semibold outline-none text-sm"
                   >
-                    <option value={ApprovalStatus.APPROVED}>ĐẠT - Phê Duyệt Quyết Định Thiết Kế & Dự Toán (APPROVED)</option>
-                    <option value={ApprovalStatus.REJECTED}>TỪ CHỐI - Yêu Cầu Chỉnh Sửa / Trình Điều Chỉnh TMĐT (REJECTED)</option>
-                    <option value={ApprovalStatus.INTERNAL_REVIEW}>ĐANG TRONG QUÁ TRÌNH THẨM ĐỊNH (INTERNAL_REVIEW)</option>
+                    <option value={ApprovalStatus.APPROVED}>Đạt - Phê duyệt quyết định thiết kế & dự toán</option>
+                    <option value={ApprovalStatus.REJECTED}>Từ chối - Yêu cầu chỉnh sửa / Trình điều chỉnh TMĐT</option>
+                    <option value={ApprovalStatus.INTERNAL_REVIEW}>Đang trong quá trình thẩm định nội bộ</option>
                   </select>
                 </div>
 
                 <div>
-                  <label className="block font-bold text-slate-700 uppercase mb-1">Ý Kiến & Kết Luận Thẩm Định</label>
+                  <label className="block text-sm font-medium text-slate-700 mb-1">Ý kiến & kết luận thẩm định</label>
                   <textarea
                     rows={3}
                     value={reviewComments}
                     onChange={e => setReviewComments(e.target.value)}
-                    className="w-full px-3.5 py-2 border border-slate-300 rounded-xl bg-white outline-none"
+                    className="w-full px-3.5 py-2 border border-slate-300 rounded-xl bg-white outline-none text-sm"
                   />
                 </div>
 
                 <div className="p-3 bg-slate-50 rounded-xl border border-slate-200 flex items-center justify-between">
                   <span className="font-semibold text-slate-700 flex items-center gap-1.5">
-                    <ShieldCheck className="w-4 h-4 text-emerald-600" /> Xác thực Ký số SmartCA Phê duyệt
+                    <ShieldCheck className="w-4 h-4 text-emerald-600" /> Xác thực ký số SmartCA phê duyệt
                   </span>
                   <input
                     type="text"
                     value={smartCaToken}
                     onChange={e => setSmartCaToken(e.target.value)}
-                    className="px-3 py-1 font-mono text-xs border rounded-lg bg-white"
+                    className="px-3 py-1 font-mono tabular-nums text-xs border rounded-lg bg-white"
                   />
                 </div>
 
                 <button
                   onClick={handleSubmitReview}
-                  className="w-full bg-blue-600 hover:bg-blue-700 text-white font-bold py-2.5 rounded-xl transition-all shadow-md flex items-center justify-center gap-2 text-sm"
+                  className="w-full bg-indigo-600 hover:bg-indigo-700 text-white font-semibold py-2.5 rounded-xl transition-all shadow-sm flex items-center justify-center gap-2 text-sm"
                 >
-                  <FileCheck2 className="w-4 h-4" /> Ký Số & Lưu Kết Quả Thẩm Định Nội Bộ
+                  <FileCheck2 className="w-4 h-4" /> Ký số & lưu kết quả thẩm định nội bộ
                 </button>
               </div>
             </div>
@@ -941,56 +955,56 @@ export default function Stage2DesignCostView({ currentUser }: { currentUser?: Us
               <div className="border-b border-slate-100 pb-3 flex items-center justify-between">
                 <h3 className="text-base font-bold text-slate-900 flex items-center gap-2">
                   <ShieldCheck className="w-5 h-5 text-emerald-600" />
-                  CHỐT CHẶN GIẤY PHÉP XÂY DỰNG / MIỄN GPXD (NĐ 217/2026)
+                  Chốt chặn giấy phép xây dựng / Miễn GPXD (NĐ 217/2026)
                 </h3>
-                <span className="px-2.5 py-0.5 rounded-full bg-emerald-100 text-emerald-800 text-[10px] font-extrabold">
-                  Điều kiện Khởi công
+                <span className="px-2.5 py-0.5 rounded-full bg-emerald-100 text-emerald-800 text-[11px] font-semibold">
+                  Điều kiện khởi công
                 </span>
               </div>
 
               <div className="space-y-3 text-xs">
                 <div>
-                  <label className="block font-bold text-slate-700 uppercase mb-1">Hình Thức Quản Lý Cấp Phép Xây Dựng</label>
+                  <label className="block text-sm font-medium text-slate-700 mb-1">Hình thức quản lý cấp phép xây dựng</label>
                   <select
                     value={permitStatus}
                     onChange={e => setPermitStatus(e.target.value as any)}
-                    className="w-full px-3.5 py-2 border border-slate-300 rounded-xl bg-white font-bold text-emerald-900 outline-none"
+                    className="w-full px-3.5 py-2 border border-slate-300 rounded-xl bg-white font-semibold text-emerald-900 outline-none text-sm"
                   >
-                    <option value="THUỘC_DIỆN_MIỄN_GPXD">THUỘC DIỆN MIỄN GIẤY PHÉP XÂY DỰNG (Khoản 2 Điều 89 Luật XD & NĐ 217/2026)</option>
-                    <option value="ĐÃ_CẤP_GIẤY_PHÉP_XD">ĐÃ ĐƯỢC CẤP GIẤY PHÉP XÂY DỰNG HỢP LỆ</option>
-                    <option value="ĐANG_XIN_CẤP_PHÉP_XD">ĐANG TRÌNH HỒ SƠ XIN CẤP GIẤY PHÉP XÂY DỰNG</option>
+                    <option value="THUỘC_DIỆN_MIỄN_GPXD">Thuộc diện miễn giấy phép xây dựng (Khoản 2 Điều 89 Luật XD & NĐ 217/2026)</option>
+                    <option value="ĐÃ_CẤP_GIẤY_PHÉP_XD">Đã được cấp giấy phép xây dựng hợp lệ</option>
+                    <option value="ĐANG_XIN_CẤP_PHÉP_XD">Đang trình hồ sơ xin cấp giấy phép xây dựng</option>
                   </select>
                 </div>
 
                 <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
                   <div>
-                    <label className="block font-bold text-slate-700 mb-1">Số Văn Bản Thông Báo KQ Thẩm Định CQCM XD</label>
+                    <label className="block text-sm font-medium text-slate-700 mb-1">Số văn bản thông báo KQ thẩm định CQCM XD</label>
                     <input
                       type="text"
                       value={appraisalNoticeNo}
                       onChange={e => setAppraisalNoticeNo(e.target.value)}
-                      className="w-full px-3 py-2 border border-slate-300 rounded-xl font-mono font-bold text-blue-800"
+                      className="w-full px-3 py-2 border border-slate-300 rounded-xl font-mono tabular-nums font-bold text-indigo-900"
                     />
                   </div>
                   <div>
-                    <label className="block font-bold text-slate-700 mb-1">Số Giấy Phép XD (Nếu thuộc diện cấp phép)</label>
+                    <label className="block text-sm font-medium text-slate-700 mb-1">Số giấy phép XD (Nếu thuộc diện cấp phép)</label>
                     <input
                       type="text"
                       value={permitNo}
                       onChange={e => setPermitNo(e.target.value)}
                       disabled={permitStatus === 'THUỘC_DIỆN_MIỄN_GPXD'}
-                      className="w-full px-3 py-2 border border-slate-300 rounded-xl font-mono disabled:bg-slate-100"
+                      className="w-full px-3 py-2 border border-slate-300 rounded-xl font-mono tabular-nums disabled:bg-slate-100"
                     />
                   </div>
                 </div>
 
                 <div>
-                  <label className="block font-bold text-slate-700 mb-1">Căn Cứ Pháp Lý Miễn GPXD / Ghi Chú Cấp Phép</label>
+                  <label className="block text-sm font-medium text-slate-700 mb-1">Căn cứ pháp lý miễn GPXD / Ghi chú cấp phép</label>
                   <textarea
                     rows={2}
                     value={exemptionLegalBasis}
                     onChange={e => setExemptionLegalBasis(e.target.value)}
-                    className="w-full px-3 py-2 border border-slate-300 rounded-xl bg-slate-50"
+                    className="w-full px-3 py-2 border border-slate-300 rounded-xl bg-slate-50 text-sm"
                   />
                 </div>
 
@@ -1011,20 +1025,20 @@ export default function Stage2DesignCostView({ currentUser }: { currentUser?: Us
                       toast.error(res.message);
                     }
                   }}
-                  className="w-full bg-emerald-600 hover:bg-emerald-700 text-white font-bold py-2.5 rounded-xl transition-all shadow-sm flex items-center justify-center gap-2"
+                  className="w-full bg-indigo-600 hover:bg-indigo-700 text-white font-semibold py-2.5 rounded-xl transition-all shadow-sm flex items-center justify-center gap-2 text-sm"
                 >
-                  <CheckCircle className="w-4 h-4" /> Xác Nhận Hồ Sơ Cấp Phép / Miễn GPXD (NĐ 217/2026)
+                  <CheckCircle className="w-4 h-4" /> Xác nhận hồ sơ cấp phép / Miễn GPXD (NĐ 217/2026)
                 </button>
 
                 {/* Review Log History List */}
                 <div className="pt-3 border-t border-slate-200 space-y-2">
-                  <div className="font-bold text-slate-800 uppercase text-[11px]">Lịch sử Thẩm định đã lưu vết:</div>
+                  <div className="font-semibold text-slate-700 text-xs">Lịch sử thẩm định đã lưu vết:</div>
                   {currentProject.REVIEW_LOGS_GDA2?.map(log => (
                     <div key={log.reviewId} className="p-2.5 bg-slate-50 rounded-xl border border-slate-200 text-xs flex justify-between items-center">
                       <div>
-                        <span className="font-bold text-slate-900">{log.reviewerDept}</span> • <span className="text-slate-600">{log.reviewerName}</span>
+                        <span className="font-semibold text-slate-900">{log.reviewerDept}</span> • <span className="text-slate-600">{log.reviewerName}</span>
                       </div>
-                      <span className="px-2 py-0.5 rounded font-bold bg-emerald-100 text-emerald-800 text-[10px]">{log.status}</span>
+                      <span className="px-2 py-0.5 rounded font-semibold bg-emerald-100 text-emerald-800 text-[11px]">{formatStatusOrCodeVN(log.status)}</span>
                     </div>
                   ))}
                 </div>

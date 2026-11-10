@@ -126,6 +126,130 @@ export function parseVND(str: string | number | null | undefined): number {
 }
 
 /**
+ * INPUT MASK TIỀN TỆ: Tự động phân tách hàng nghìn bằng dấu chấm (VD: 35.000.000.000)
+ */
+export function formatCurrencyInputMask(val: number | string | null | undefined): string {
+  if (val === null || val === undefined || val === '') return '0';
+  const num = typeof val === 'number' ? val : parseVND(val);
+  if (isNaN(num)) return '0';
+  return new Intl.NumberFormat('vi-VN', { maximumFractionDigits: 0 }).format(num);
+}
+
+/**
+ * PARSE INPUT MASK TIỀN TỆ: Chuyển chuỗi có dấu chấm phân tách về số nguyên
+ */
+export function parseCurrencyInputMask(raw: string | number | null | undefined): number {
+  return parseVND(raw);
+}
+
+/**
+ * FORMAT TRẠNG THÁI & PHÂN LOẠI TIẾNG VIỆT CHUẨN (Xóa dấu gạch dưới _ sang tiếng Việt có khoảng trắng chuẩn)
+ */
+export function formatStatusOrCodeVN(raw: string | null | undefined): string {
+  if (!raw) return '';
+  const str = String(raw).trim();
+  const DICT: Record<string, string> = {
+    // Cấp công trình
+    CAP_DAC_BIET: 'Cấp Đặc biệt',
+    'ĐẶC_BIỆT': 'Cấp Đặc biệt',
+    CAP_I: 'Cấp I',
+    'CẤP_I': 'Cấp I',
+    CAP_II: 'Cấp II',
+    'CẤP_II': 'Cấp II',
+    CAP_III: 'Cấp III',
+    'CẤP_III': 'Cấp III',
+    CAP_IV: 'Cấp IV',
+    'CẤP_IV': 'Cấp IV',
+    // Nhóm dự án
+    QUAN_TRONG_QG: 'Quan trọng quốc gia',
+    NHOM_A: 'Nhóm A',
+    'NHÓM_A': 'Nhóm A',
+    NHOM_B: 'Nhóm B',
+    'NHÓM_B': 'Nhóm B',
+    NHOM_C: 'Nhóm C',
+    'NHÓM_C': 'Nhóm C',
+    // Loại hợp đồng
+    'ĐƠN_GIÁ_ĐIỀU_CHỈNH': 'Đơn giá điều chỉnh',
+    DON_GIA_DIEU_CHINH: 'Đơn giá điều chỉnh',
+    'ĐƠN_GIÁ_CỐ_ĐỊNH': 'Đơn giá cố định',
+    DON_GIA_CO_DINH: 'Đơn giá cố định',
+    'TRỌN_GÓI': 'Trọn gói',
+    TRON_GOI: 'Trọn gói',
+    'THEO_THỜI_GIAN': 'Theo thời gian',
+    THEO_THOI_GIAN: 'Theo thời gian',
+    'HỢP_ĐỒNG_KẾT_HỢP': 'Hợp đồng kết hợp',
+    HOP_DONG_KET_HOP: 'Hợp đồng kết hợp',
+    'HỢP_ĐỒNG_EPC': 'Hợp đồng EPC',
+    HOP_DONG_EPC: 'Hợp đồng EPC',
+    // Hình thức lựa chọn nhà thầu
+    'ĐẤU_THẦU_RỘNG_RÃI': 'Đấu thầu rộng rãi',
+    DAU_THAU_RONG_RAI: 'Đấu thầu rộng rãi',
+    'CHỈ_ĐỊNH_THẦU_RÚT_GỌN': 'Chỉ định thầu rút gọn',
+    CHI_DINH_THAU_RUT_GON: 'Chỉ định thầu rút gọn',
+    'CHỈ_ĐỊNH_THẦU_THÔNG_THƯỜNG': 'Chỉ định thầu thông thường',
+    CHI_DINH_THAU_THONG_THUONG: 'Chỉ định thầu thông thường',
+    'CHÀO_HÀNG_CẠNH_TRANH': 'Chào hàng cạnh tranh',
+    CHAO_HANG_CANH_TRANH: 'Chào hàng cạnh tranh',
+    // Trạng thái dự án / hợp đồng / gói thầu / thanh toán
+    'KHỞI_TẠO': 'Khởi tạo',
+    'CHỜ_THẨM_ĐỊNH': 'Chờ thẩm định',
+    'ĐANG_THỰC_HIỆN': 'Đang thực hiện',
+    'ĐANG_THI_CÔNG': 'Đang thi công',
+    'ĐÃ_HOÀN_THÀNH': 'Đã hoàn thành',
+    'HOÀN_THÀNH': 'Hoàn thành',
+    'ĐÃ_PHÊ_DUYỆT': 'Đã phê duyệt',
+    APPROVED: 'Đã phê duyệt',
+    REJECTED: 'Từ chối',
+    INTERNAL_REVIEW: 'Đang thẩm định nội bộ',
+    'CHỜ_DUYỆT': 'Chờ duyệt',
+    'ĐÃ_NGHIỆM_THU': 'Đã nghiệm thu',
+    'QUYẾT_TOÁN_HOÀN_TẤT': 'Quyết toán hoàn tất',
+    'ĐÃ_GIẢI_NGÂN': 'Đã giải ngân',
+    'ĐÃ_LẬP_BẢNG_XÁC_NHẬN': 'Đã lập bảng xác nhận',
+    'ĐẠT_NGHIỆM_THU_ĐẦU_VÀO': 'Đạt nghiệm thu đầu vào',
+    'ĐÃ_KÝ_HỢP_ĐỒNG': 'Đã ký hợp đồng',
+    'ĐÃ_PHE_DUYET_KQLCNT': 'Đã phê duyệt KQLCNT',
+    'DỰ_THẢO': 'Dự thảo',
+    // GPMB
+    'CHỜ_KIỂM_ĐẾM': 'Chờ kiểm đếm',
+    'ĐÃ_PHÊ_DUYỆT_PA': 'Đã phê duyệt phương án',
+    'ĐÃ_CHI_TRẢ': 'Đã chi trả',
+    'ĐÃ_BÀN_GIAO_MẶT_BẰNG': 'Đã bàn giao mặt bằng',
+    // Bảo trì & Bàn giao
+    'BÌNH_THƯỜNG': 'Bình thường',
+    'ĐẾN_HẠN': 'Đến hạn',
+    'QUÁ_HẠN': 'Quá hạn',
+    'BIÊN_BẢN_NGHIỆM_THU': 'Biên bản nghiệm thu',
+    'BẢN_VẼ_HOÀN_CÔNG': 'Bản vẽ hoàn công',
+    'QUY_TRÌNH_VẬN_HÀNH': 'Quy trình vận hành',
+    'HỒ_SƠ_KHÁC': 'Hồ sơ khác',
+    // Audit Trail Actions
+    UPLOAD_SIGNED_SUBMISSION: 'Nộp hồ sơ ký số',
+    ADMIN_UPDATE_MASTER_TEMPLATE: 'Cập nhật biểu mẫu gốc',
+    BLOCKER_REJECTED: 'Bị chặn bởi Blocker',
+    DOWNLOAD_TEMPLATE: 'Tải biểu mẫu gốc',
+    // Roles
+    ADMIN: 'Quản trị viên',
+    PROJECT_MANAGER: 'Giám đốc dự án',
+    MEMBER: 'Chuyên viên dự án',
+    VIEWER: 'Người xem'
+  };
+
+  if (DICT[str]) return DICT[str];
+
+  if (str.startsWith('ĐANG_Ở_BƯỚC_')) {
+    return `Đang ở bước ${str.replace('ĐANG_Ở_BƯỚC_', '')}`;
+  }
+
+  if (str.includes('_')) {
+    const spaced = str.replace(/_/g, ' ').toLowerCase();
+    return spaced.charAt(0).toUpperCase() + spaced.slice(1);
+  }
+
+  return str;
+}
+
+/**
  * An toàn số cho phép trả về 0 nếu undefined/null/NaN
  */
 export function safeNumber(val: any, fallback = 0): number {
@@ -160,6 +284,7 @@ export function formatDateTimeVN(isoString?: string): string {
   const timeStr = d.toLocaleTimeString('vi-VN', { hour: '2-digit', minute: '2-digit' });
   return `${dateStr} ${timeStr}`;
 }
+
 
 /**
  * STAGE 1 VALIDATION UTILITY: Kiểm tra danh mục hồ sơ bắt buộc theo bước

@@ -2,7 +2,7 @@ import React, { useState, useEffect } from 'react';
 import { PmsService, ProjectData, SiteClearanceRecord, ProcurementPackageRecord, ContractManagementRecord } from '../pms/T2_Services';
 import { PmsHandlers } from '../pms/T3_Handlers';
 import { ProcurementMethod, ContractType, GpmbStatus, STAGE3_DOCUMENT_TYPES, CONTRACT_TEMPLATES_210, CapabilityGrade } from '../pms/T0_Config';
-import { formatVND, safeNumber, safeString, calculateBiddingSavings, generateExcelTemplate, canEditProject, validateContractorAndCchn212, calculateIpcNetPayment210 } from '../pms/T1_Utils';
+import { formatVND, safeNumber, safeString, calculateBiddingSavings, generateExcelTemplate, canEditProject, validateContractorAndCchn212, calculateIpcNetPayment210, formatCurrencyInputMask, parseCurrencyInputMask, formatStatusOrCodeVN } from '../pms/T1_Utils';
 import { UserProfile } from '../pms/T2_Services';
 import Stage3DocumentUploader from '../components/Stage3DocumentUploader';
 import ExcelDragDropUploader from '../components/ExcelDragDropUploader';
@@ -345,32 +345,38 @@ export default function Stage3ProcurementView({ currentUser }: { currentUser?: U
   return (
     <div className="space-y-6">
       {/* 3 Main Action Tabs */}
-      <div className="flex border-b border-slate-200 bg-white p-2 rounded-xl border">
+      <div className="flex border-b border-slate-200 bg-white p-1.5 rounded-xl border gap-1.5">
         <button
           onClick={() => setActiveTab('gpmb')}
-          className={`flex-1 py-2.5 px-4 text-xs font-bold rounded-lg transition-all flex items-center justify-center gap-2 ${
-            activeTab === 'gpmb' ? 'bg-blue-600 text-white shadow-sm' : 'text-slate-600 hover:bg-slate-50'
+          className={`flex-1 py-2.5 px-4 text-sm font-medium rounded-lg transition-all flex items-center justify-center gap-2 ${
+            activeTab === 'gpmb'
+              ? 'bg-indigo-50 text-indigo-700 border-b-2 border-indigo-600 font-semibold'
+              : 'text-slate-700 hover:bg-slate-50'
           }`}
         >
-          <MapPin className="w-4 h-4" /> SUB-MODULE 1: GIẢI PHÓNG MẶT BẰNG & TÁI ĐỊNH CƯ
+          <MapPin className="w-4 h-4" /> 1. Giải phóng mặt bằng & tái định cư
         </button>
 
         <button
           onClick={() => setActiveTab('khlcnt')}
-          className={`flex-1 py-2.5 px-4 text-xs font-bold rounded-lg transition-all flex items-center justify-center gap-2 ${
-            activeTab === 'khlcnt' ? 'bg-blue-600 text-white shadow-sm' : 'text-slate-600 hover:bg-slate-50'
+          className={`flex-1 py-2.5 px-4 text-sm font-medium rounded-lg transition-all flex items-center justify-center gap-2 ${
+            activeTab === 'khlcnt'
+              ? 'bg-indigo-50 text-indigo-700 border-b-2 border-indigo-600 font-semibold'
+              : 'text-slate-700 hover:bg-slate-50'
           }`}
         >
-          <Briefcase className="w-4 h-4" /> SUB-MODULE 2: KẾ HOẠCH & TỔ CHỨC ĐẤU THẦU (LCNT)
+          <Briefcase className="w-4 h-4" /> 2. Kế hoạch & tổ chức đấu thầu (LCNT)
         </button>
 
         <button
           onClick={() => setActiveTab('contract')}
-          className={`flex-1 py-2.5 px-4 text-xs font-bold rounded-lg transition-all flex items-center justify-center gap-2 ${
-            activeTab === 'contract' ? 'bg-blue-600 text-white shadow-sm' : 'text-slate-600 hover:bg-slate-50'
+          className={`flex-1 py-2.5 px-4 text-sm font-medium rounded-lg transition-all flex items-center justify-center gap-2 ${
+            activeTab === 'contract'
+              ? 'bg-indigo-50 text-indigo-700 border-b-2 border-indigo-600 font-semibold'
+              : 'text-slate-700 hover:bg-slate-50'
           }`}
         >
-          <FileText className="w-4 h-4" /> SUB-MODULE 3: QUẢN LÝ HỢP ĐỒNG & PHỤ LỤC (QĐ 1040)
+          <FileText className="w-4 h-4" /> 3. Quản lý hợp đồng & phụ lục (QĐ 1040)
         </button>
       </div>
 
@@ -381,8 +387,8 @@ export default function Stage3ProcurementView({ currentUser }: { currentUser?: U
             <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-3 border-b border-slate-100 pb-3">
               <div>
                 <h3 className="text-base font-bold text-slate-900 flex items-center gap-2">
-                  <MapPin className="w-5 h-5 text-blue-600" />
-                  DANH SÁCH HỘ GIA ĐÌNH & TỔ CHỨC THU HỒI ĐẤT / GPMB
+                  <MapPin className="w-5 h-5 text-indigo-600" />
+                  Danh sách hộ gia đình & tổ chức thu hồi đất / GPMB
                 </h3>
                 <p className="text-xs text-slate-500">Quản lý kiểm đếm, phương án bồi thường tái định cư & bàn giao mặt bằng sạch</p>
               </div>
@@ -390,23 +396,23 @@ export default function Stage3ProcurementView({ currentUser }: { currentUser?: U
               <div className="flex items-center gap-2">
                 <button
                   onClick={() => handleDownloadTemplate('GPMB')}
-                  className="bg-slate-100 hover:bg-slate-200 text-slate-700 text-xs font-bold px-3 py-2 rounded-xl transition-all border border-slate-300 flex items-center gap-1.5"
+                  className="bg-white border border-slate-300 text-slate-700 hover:bg-slate-50 text-xs font-medium px-3 py-2 rounded-xl transition-all flex items-center gap-1.5 shadow-2xs"
                 >
-                  <Download className="w-4 h-4 text-blue-600" /> Tải Template GPMB
+                  <Download className="w-4 h-4 text-slate-600" /> Tải Template GPMB
                 </button>
 
                 <button
                   onClick={() => handleOpenExcelImport('GPMB')}
-                  className="bg-emerald-600 hover:bg-emerald-700 text-white text-xs font-bold px-3 py-2 rounded-xl transition-all shadow-sm flex items-center gap-1.5"
+                  className="bg-white border border-slate-300 text-slate-700 hover:bg-slate-50 text-xs font-medium px-3 py-2 rounded-xl transition-all flex items-center gap-1.5 shadow-2xs"
                 >
-                  <Upload className="w-4 h-4" /> Upload Excel Kiểm Đếm GPMB
+                  <Upload className="w-4 h-4 text-slate-600" /> Upload Excel kiểm đếm GPMB
                 </button>
 
                 <button
                   onClick={handleSaveGpmbAll}
-                  className="bg-blue-600 hover:bg-blue-700 text-white text-xs font-bold px-4 py-2 rounded-xl transition-all shadow-sm flex items-center gap-1.5"
+                  className="bg-indigo-600 hover:bg-indigo-700 text-white text-xs font-semibold px-4 py-2 rounded-xl transition-all shadow-sm flex items-center gap-1.5"
                 >
-                  <CheckCircle className="w-4 h-4" /> Lưu Dữ Liệu GPMB
+                  <CheckCircle className="w-4 h-4" /> Lưu dữ liệu GPMB
                 </button>
               </div>
             </div>
@@ -414,16 +420,16 @@ export default function Stage3ProcurementView({ currentUser }: { currentUser?: U
             {/* Table GPMB with Action Column */}
             <div className="overflow-x-auto border border-slate-200 rounded-xl">
               <table className="w-full text-xs text-left text-slate-600">
-                <thead className="bg-slate-100 text-slate-700 uppercase font-bold border-b border-slate-200">
+                <thead className="bg-slate-50 text-slate-700 font-semibold border-b border-slate-200">
                   <tr>
-                    <th className="px-3 py-2.5">Mã Hộ</th>
-                    <th className="px-3 py-2.5">Họ Và Tên Chủ Hộ / Đại Diện</th>
-                    <th className="px-3 py-2.5">Tờ Bản Đồ / Số Thửa</th>
-                    <th className="px-3 py-2.5 text-right">Diện Tích Thu Hồi (m2)</th>
-                    <th className="px-3 py-2.5 text-right">Đơn Giá Bồi Thường (VND/m2)</th>
-                    <th className="px-3 py-2.5 text-right">Tổng Đền Bù (VND)</th>
-                    <th className="px-3 py-2.5 text-center">Trạng Thái GPMB</th>
-                    <th className="px-3 py-2.5 text-center">Thao Tác</th>
+                    <th className="px-3 py-2.5">Mã hộ</th>
+                    <th className="px-3 py-2.5">Họ và tên chủ hộ / Đại diện</th>
+                    <th className="px-3 py-2.5">Tờ bản đồ / Số thửa</th>
+                    <th className="px-3 py-2.5 text-right">Diện tích thu hồi (m²)</th>
+                    <th className="px-3 py-2.5 text-right">Đơn giá bồi thường (VNĐ/m²)</th>
+                    <th className="px-3 py-2.5 text-right">Tổng đền bù (VNĐ)</th>
+                    <th className="px-3 py-2.5 text-center">Trạng thái GPMB</th>
+                    <th className="px-3 py-2.5 text-center">Thao tác</th>
                   </tr>
                 </thead>
                 <tbody className="divide-y divide-slate-100 font-medium">
@@ -431,19 +437,19 @@ export default function Stage3ProcurementView({ currentUser }: { currentUser?: U
                     const isEditing = editingHouseholdId === item.householdId;
                     return (
                       <tr key={item.householdId} className="hover:bg-slate-50">
-                        <td className="px-3 py-2 font-mono font-bold text-blue-700">
+                        <td className="px-3 py-2 font-mono tabular-nums font-bold text-indigo-700">
                           {isEditing ? (
                             <input
                               type="text"
                               value={draftHousehold.householdId || ''}
                               onChange={e => setDraftHousehold({ ...draftHousehold, householdId: e.target.value })}
-                              className="w-20 px-1.5 py-0.5 border rounded font-mono"
+                              className="w-20 px-1.5 py-0.5 border rounded font-mono tabular-nums"
                             />
                           ) : (
                             item.householdId
                           )}
                         </td>
-                        <td className="px-3 py-2 font-bold text-slate-900">
+                        <td className="px-3 py-2 font-semibold text-slate-900">
                           {isEditing ? (
                             <input
                               type="text"
@@ -455,43 +461,44 @@ export default function Stage3ProcurementView({ currentUser }: { currentUser?: U
                             item.ownerName
                           )}
                         </td>
-                        <td className="px-3 py-2 text-slate-700">
+                        <td className="px-3 py-2 text-slate-700 font-mono tabular-nums">
                           {isEditing ? (
                             <input
                               type="text"
                               value={draftHousehold.mapPlotNo || ''}
                               onChange={e => setDraftHousehold({ ...draftHousehold, mapPlotNo: e.target.value })}
-                              className="w-28 px-1.5 py-0.5 border rounded"
+                              className="w-28 px-1.5 py-0.5 border rounded font-mono tabular-nums"
                             />
                           ) : (
                             item.mapPlotNo
                           )}
                         </td>
-                        <td className="px-3 py-2 text-right font-mono font-bold">
+                        <td className="px-3 py-2 text-right font-mono tabular-nums font-bold">
                           {isEditing ? (
                             <input
                               type="number"
                               value={draftHousehold.recoveredArea || 0}
                               onChange={e => setDraftHousehold({ ...draftHousehold, recoveredArea: Number(e.target.value) || 0 })}
-                              className="w-20 px-1.5 py-0.5 border rounded text-right font-mono"
+                              className="w-20 px-1.5 py-0.5 border rounded text-right font-mono tabular-nums"
                             />
                           ) : (
                             item.recoveredArea.toLocaleString('vi-VN')
                           )}
                         </td>
-                        <td className="px-3 py-2 text-right font-mono">
+                        <td className="px-3 py-2 text-right font-mono tabular-nums">
                           {isEditing ? (
                             <input
-                              type="number"
-                              value={draftHousehold.unitPrice || 0}
-                              onChange={e => setDraftHousehold({ ...draftHousehold, unitPrice: Number(e.target.value) || 0 })}
-                              className="w-28 px-1.5 py-0.5 border rounded text-right font-mono"
+                              type="text"
+                              inputMode="numeric"
+                              value={formatCurrencyInputMask(draftHousehold.unitPrice || 0)}
+                              onChange={e => setDraftHousehold({ ...draftHousehold, unitPrice: parseCurrencyInputMask(e.target.value) })}
+                              className="w-32 px-1.5 py-0.5 border rounded text-right font-mono tabular-nums"
                             />
                           ) : (
                             formatVND(item.unitPrice)
                           )}
                         </td>
-                        <td className="px-3 py-2 text-right font-mono font-bold text-emerald-700">
+                        <td className="px-3 py-2 text-right font-mono tabular-nums font-bold text-emerald-700">
                           {isEditing ? (
                             formatVND((safeNumber(draftHousehold.recoveredArea) * safeNumber(draftHousehold.unitPrice)))
                           ) : (
@@ -503,20 +510,20 @@ export default function Stage3ProcurementView({ currentUser }: { currentUser?: U
                             <select
                               value={draftHousehold.status || GpmbStatus.CHO_KIEM_DEM}
                               onChange={e => setDraftHousehold({ ...draftHousehold, status: e.target.value as any })}
-                              className="px-1.5 py-0.5 border rounded text-[11px] font-bold"
+                              className="px-1.5 py-0.5 border rounded text-[11px] font-semibold"
                             >
-                              <option value={GpmbStatus.CHO_KIEM_DEM}>CHỜ_KIỂM_ĐẾM</option>
-                              <option value={GpmbStatus.DA_PHE_DUYET_PA}>ĐÃ_PHÊ_DUYỆT_PA</option>
-                              <option value={GpmbStatus.DA_CHI_TRA}>ĐÃ_CHI_TRẢ</option>
-                              <option value={GpmbStatus.DA_BAN_GIAO_MAT_BANG}>ĐÃ_BÀN_GIAO_MẶT_BẰNG</option>
+                              <option value={GpmbStatus.CHO_KIEM_DEM}>{formatStatusOrCodeVN(GpmbStatus.CHO_KIEM_DEM)}</option>
+                              <option value={GpmbStatus.DA_PHE_DUYET_PA}>{formatStatusOrCodeVN(GpmbStatus.DA_PHE_DUYET_PA)}</option>
+                              <option value={GpmbStatus.DA_CHI_TRA}>{formatStatusOrCodeVN(GpmbStatus.DA_CHI_TRA)}</option>
+                              <option value={GpmbStatus.DA_BAN_GIAO_MAT_BANG}>{formatStatusOrCodeVN(GpmbStatus.DA_BAN_GIAO_MAT_BANG)}</option>
                             </select>
                           ) : (
-                            <span className={`px-2 py-0.5 rounded font-bold text-[10px] ${
+                            <span className={`px-2.5 py-0.5 rounded-full font-semibold text-[11px] ${
                               item.status === GpmbStatus.DA_BAN_GIAO_MAT_BANG ? 'bg-emerald-100 text-emerald-800' :
-                              item.status === GpmbStatus.DA_CHI_TRA ? 'bg-blue-100 text-blue-800' :
+                              item.status === GpmbStatus.DA_CHI_TRA ? 'bg-indigo-100 text-indigo-800' :
                               item.status === GpmbStatus.DA_PHE_DUYET_PA ? 'bg-purple-100 text-purple-800' : 'bg-amber-100 text-amber-800'
                             }`}>
-                              {item.status}
+                              {formatStatusOrCodeVN(item.status)}
                             </span>
                           )}
                         </td>
@@ -528,7 +535,7 @@ export default function Stage3ProcurementView({ currentUser }: { currentUser?: U
                             </div>
                           ) : (
                             <div className="flex justify-center gap-2">
-                              <button onClick={() => handleEditGpmbHousehold(item)} className="text-blue-600 hover:text-blue-800 p-1"><Pencil className="w-4 h-4" /></button>
+                              <button onClick={() => handleEditGpmbHousehold(item)} className="text-indigo-600 hover:text-indigo-800 p-1"><Pencil className="w-4 h-4" /></button>
                               <button onClick={() => handleDeleteGpmbItem(item)} className="text-red-500 hover:text-red-700 p-1"><Trash2 className="w-4 h-4" /></button>
                             </div>
                           )}
@@ -543,15 +550,15 @@ export default function Stage3ProcurementView({ currentUser }: { currentUser?: U
             {/* Add New Household Button */}
             <button
               onClick={handleAddNewGpmbRow}
-              className="w-full bg-slate-50 hover:bg-blue-50/60 text-blue-700 border-2 border-dashed border-blue-200 font-bold text-xs py-2.5 rounded-xl transition-all flex items-center justify-center gap-2"
+              className="w-full bg-slate-50 hover:bg-indigo-50/60 text-indigo-700 border-2 border-dashed border-indigo-200 font-semibold text-xs py-2.5 rounded-xl transition-all flex items-center justify-center gap-2"
             >
-              <PlusCircle className="w-4 h-4" /> [+ THÊM HỘ DÂN KIỂM ĐẾM GPMB MỚI]
+              <PlusCircle className="w-4 h-4" /> Thêm hộ dân kiểm đếm GPMB mới
             </button>
 
             {/* GPMB Compensation Summary */}
             <div className="bg-slate-50 p-4 rounded-xl border border-slate-200 flex justify-between items-center text-xs font-bold text-slate-800">
-              <span>TỔNG KINH PHÍ BỒI THƯỜNG GPMB DỰ KIẾN:</span>
-              <span className="font-mono text-sm text-emerald-700">{formatVND(totalCompensationSum)}</span>
+              <span>Tổng kinh phí bồi thường GPMB dự kiến:</span>
+              <span className="font-mono tabular-nums text-sm text-emerald-700">{formatVND(totalCompensationSum)}</span>
             </div>
           </div>
 
@@ -574,30 +581,30 @@ export default function Stage3ProcurementView({ currentUser }: { currentUser?: U
             <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-3 border-b border-slate-100 pb-3">
               <div>
                 <h3 className="text-base font-bold text-slate-900 flex items-center gap-2">
-                  <Briefcase className="w-5 h-5 text-blue-600" />
-                  KẾ HOẠCH LỰA CHỌN NHÀ THẦU & KẾT QUẢ ĐẤU THẦU
+                  <Briefcase className="w-5 h-5 text-indigo-600" />
+                  Kế hoạch lựa chọn nhà thầu & kết quả đấu thầu
                 </h3>
-                <p className="text-xs text-slate-500">Tự động tính toán Tỷ lệ tiết kiệm (%) = (1 - Giá trúng thầu / Giá gói thầu) * 100</p>
+                <p className="text-xs text-slate-500">Tự động tính toán tỷ lệ tiết kiệm (%) = (1 - Giá trúng thầu / Giá gói thầu) * 100</p>
               </div>
 
               <div className="flex items-center gap-2">
                 <button
                   onClick={() => handleDownloadTemplate('KHLCNT')}
-                  className="bg-slate-100 hover:bg-slate-200 text-slate-700 text-xs font-bold px-3 py-2 rounded-xl transition-all border border-slate-300 flex items-center gap-1.5"
+                  className="bg-white border border-slate-300 text-slate-700 hover:bg-slate-50 text-xs font-medium px-3 py-2 rounded-xl transition-all flex items-center gap-1.5 shadow-2xs"
                 >
-                  <Download className="w-4 h-4 text-blue-600" /> Tải Template KHLCNT
+                  <Download className="w-4 h-4 text-slate-600" /> Tải Template KHLCNT
                 </button>
 
                 <button
                   onClick={() => handleOpenExcelImport('KHLCNT')}
-                  className="bg-emerald-600 hover:bg-emerald-700 text-white text-xs font-bold px-3 py-2 rounded-xl transition-all shadow-sm flex items-center gap-1.5"
+                  className="bg-white border border-slate-300 text-slate-700 hover:bg-slate-50 text-xs font-medium px-3 py-2 rounded-xl transition-all flex items-center gap-1.5 shadow-2xs"
                 >
-                  <Upload className="w-4 h-4" /> Upload Excel KHLCNT
+                  <Upload className="w-4 h-4 text-slate-600" /> Upload Excel KHLCNT
                 </button>
 
                 <button
                   onClick={handleSaveKhlcntAll}
-                  className="bg-blue-600 hover:bg-blue-700 text-white text-xs font-bold px-4 py-2 rounded-xl transition-all shadow-sm flex items-center gap-1.5"
+                  className="bg-indigo-600 hover:bg-indigo-700 text-white text-xs font-semibold px-4 py-2 rounded-xl transition-all shadow-sm flex items-center gap-1.5"
                 >
                   <CheckCircle className="w-4 h-4" /> Lưu KHLCNT
                 </button>
@@ -607,16 +614,16 @@ export default function Stage3ProcurementView({ currentUser }: { currentUser?: U
             {/* Table KHLCNT with Action Column */}
             <div className="overflow-x-auto border border-slate-200 rounded-xl">
               <table className="w-full text-xs text-left text-slate-600">
-                <thead className="bg-slate-100 text-slate-700 uppercase font-bold border-b border-slate-200">
+                <thead className="bg-slate-50 text-slate-700 font-semibold border-b border-slate-200">
                   <tr>
-                    <th className="px-3 py-2.5">Mã Gói</th>
-                    <th className="px-3 py-2.5">Tên Gói Thầu Chi Tiết</th>
-                    <th className="px-3 py-2.5 text-right">Giá Gói Thầu (VND)</th>
-                    <th className="px-3 py-2.5">Hình Thức LCNT</th>
-                    <th className="px-3 py-2.5">Nhà Thầu Trúng Thầu</th>
-                    <th className="px-3 py-2.5 text-right">Giá Trúng Thầu (VND)</th>
-                    <th className="px-3 py-2.5 text-center">Tiết Kiệm (%)</th>
-                    <th className="px-3 py-2.5 text-center">Thao Tác</th>
+                    <th className="px-3 py-2.5">Mã gói</th>
+                    <th className="px-3 py-2.5">Tên gói thầu chi tiết</th>
+                    <th className="px-3 py-2.5 text-right">Giá gói thầu (VNĐ)</th>
+                    <th className="px-3 py-2.5">Hình thức LCNT</th>
+                    <th className="px-3 py-2.5">Nhà thầu trúng thầu</th>
+                    <th className="px-3 py-2.5 text-right">Giá trúng thầu (VNĐ)</th>
+                    <th className="px-3 py-2.5 text-center">Tiết kiệm (%)</th>
+                    <th className="px-3 py-2.5 text-center">Thao tác</th>
                   </tr>
                 </thead>
                 <tbody className="divide-y divide-slate-100 font-medium">
@@ -624,19 +631,19 @@ export default function Stage3ProcurementView({ currentUser }: { currentUser?: U
                     const isEditing = editingPackageId === pkg.packageId;
                     return (
                       <tr key={pkg.packageId} className="hover:bg-slate-50">
-                        <td className="px-3 py-2 font-mono font-bold text-blue-700">
+                        <td className="px-3 py-2 font-mono tabular-nums font-bold text-indigo-700">
                           {isEditing ? (
                             <input
                               type="text"
                               value={draftPackage.packageId || ''}
                               onChange={e => setDraftPackage({ ...draftPackage, packageId: e.target.value })}
-                              className="w-16 px-1.5 py-0.5 border rounded font-mono"
+                              className="w-16 px-1.5 py-0.5 border rounded font-mono tabular-nums"
                             />
                           ) : (
                             pkg.packageId
                           )}
                         </td>
-                        <td className="px-3 py-2 font-bold text-slate-900">
+                        <td className="px-3 py-2 font-semibold text-slate-900">
                           {isEditing ? (
                             <input
                               type="text"
@@ -648,19 +655,20 @@ export default function Stage3ProcurementView({ currentUser }: { currentUser?: U
                             pkg.packageName
                           )}
                         </td>
-                        <td className="px-3 py-2 text-right font-mono font-bold text-slate-900">
+                        <td className="px-3 py-2 text-right font-mono tabular-nums font-bold text-slate-900">
                           {isEditing ? (
                             <input
-                              type="number"
-                              value={draftPackage.packagePrice || 0}
-                              onChange={e => setDraftPackage({ ...draftPackage, packagePrice: Number(e.target.value) || 0 })}
-                              className="w-28 px-1.5 py-0.5 border rounded text-right font-mono"
+                              type="text"
+                              inputMode="numeric"
+                              value={formatCurrencyInputMask(draftPackage.packagePrice || 0)}
+                              onChange={e => setDraftPackage({ ...draftPackage, packagePrice: parseCurrencyInputMask(e.target.value) })}
+                              className="w-32 px-1.5 py-0.5 border rounded text-right font-mono tabular-nums"
                             />
                           ) : (
                             formatVND(pkg.packagePrice)
                           )}
                         </td>
-                        <td className="px-3 py-2 font-semibold">
+                        <td className="px-3 py-2 font-medium text-slate-700">
                           {isEditing ? (
                             <select
                               value={draftPackage.procurementMethod || ProcurementMethod.DAU_THAU_RONG_RAI}
@@ -673,10 +681,10 @@ export default function Stage3ProcurementView({ currentUser }: { currentUser?: U
                               <option value={ProcurementMethod.CHAO_HANG_CANH_TRANH}>Chào hàng cạnh tranh</option>
                             </select>
                           ) : (
-                            pkg.procurementMethod
+                            formatStatusOrCodeVN(pkg.procurementMethod)
                           )}
                         </td>
-                        <td className="px-3 py-2 font-bold text-blue-900">
+                        <td className="px-3 py-2 font-semibold text-indigo-950">
                           {isEditing ? (
                             <input
                               type="text"
@@ -689,19 +697,20 @@ export default function Stage3ProcurementView({ currentUser }: { currentUser?: U
                             pkg.winningContractor || '-'
                           )}
                         </td>
-                        <td className="px-3 py-2 text-right font-mono font-bold text-emerald-700">
+                        <td className="px-3 py-2 text-right font-mono tabular-nums font-bold text-emerald-700">
                           {isEditing ? (
                             <input
-                              type="number"
-                              value={draftPackage.winningPrice || 0}
-                              onChange={e => setDraftPackage({ ...draftPackage, winningPrice: Number(e.target.value) || 0 })}
-                              className="w-28 px-1.5 py-0.5 border rounded text-right font-mono"
+                              type="text"
+                              inputMode="numeric"
+                              value={formatCurrencyInputMask(draftPackage.winningPrice || 0)}
+                              onChange={e => setDraftPackage({ ...draftPackage, winningPrice: parseCurrencyInputMask(e.target.value) })}
+                              className="w-32 px-1.5 py-0.5 border rounded text-right font-mono tabular-nums"
                             />
                           ) : (
                             pkg.winningPrice ? formatVND(pkg.winningPrice) : '-'
                           )}
                         </td>
-                        <td className="px-3 py-2 text-center font-mono font-bold text-purple-700">
+                        <td className="px-3 py-2 text-center font-mono tabular-nums font-bold text-purple-700">
                           {pkg.savingsPct ? `${pkg.savingsPct}%` : '-'}
                         </td>
                         <td className="px-3 py-2 text-center">
@@ -712,7 +721,7 @@ export default function Stage3ProcurementView({ currentUser }: { currentUser?: U
                             </div>
                           ) : (
                             <div className="flex justify-center gap-2">
-                              <button onClick={() => handleEditKhlcntPackage(pkg)} className="text-blue-600 hover:text-blue-800 p-1"><Pencil className="w-4 h-4" /></button>
+                              <button onClick={() => handleEditKhlcntPackage(pkg)} className="text-indigo-600 hover:text-indigo-800 p-1"><Pencil className="w-4 h-4" /></button>
                               <button onClick={() => handleDeleteKhlcntItem(pkg)} className="text-red-500 hover:text-red-700 p-1"><Trash2 className="w-4 h-4" /></button>
                             </div>
                           )}
@@ -727,9 +736,9 @@ export default function Stage3ProcurementView({ currentUser }: { currentUser?: U
             {/* Add New Package Button */}
             <button
               onClick={handleAddNewKhlcntRow}
-              className="w-full bg-slate-50 hover:bg-emerald-50/60 text-emerald-700 border-2 border-dashed border-emerald-300 font-bold text-xs py-2.5 rounded-xl transition-all flex items-center justify-center gap-2"
+              className="w-full bg-slate-50 hover:bg-indigo-50/60 text-indigo-700 border-2 border-dashed border-indigo-200 font-semibold text-xs py-2.5 rounded-xl transition-all flex items-center justify-center gap-2"
             >
-              <PlusCircle className="w-4 h-4" /> [+ THÊM GÓI THẦU KHLCNT MỚI]
+              <PlusCircle className="w-4 h-4" /> Thêm gói thầu KHLCNT mới
             </button>
           </div>
 
@@ -752,18 +761,18 @@ export default function Stage3ProcurementView({ currentUser }: { currentUser?: U
             {/* New Contract Setup Form */}
             <div className="lg:col-span-2 bg-white p-6 rounded-2xl border border-slate-200 shadow-sm space-y-5">
               <h3 className="text-base font-bold text-slate-900 flex items-center gap-2 border-b border-slate-100 pb-3">
-                <FileText className="w-5 h-5 text-blue-600" />
-                CẬP NHẬT KẾT QUẢ ĐẤU THẦU & SINH HỢP ĐỒNG MẪU (NĐ 210/2026/NĐ-CP & QĐ 1040/QĐ-BXD)
+                <FileText className="w-5 h-5 text-indigo-600" />
+                Cập nhật kết quả đấu thầu & sinh hợp đồng mẫu (NĐ 210/2026/NĐ-CP & QĐ 1040/QĐ-BXD)
               </h3>
 
               <div className="space-y-4 text-xs">
                 <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
                   <div>
-                    <label className="block font-bold text-slate-700 uppercase mb-1">Biểu Mẫu Hợp Đồng Chuẩn (NĐ 210/2026)</label>
+                    <label className="block text-sm font-medium text-slate-700 mb-1">Biểu mẫu hợp đồng chuẩn (NĐ 210/2026)</label>
                     <select
                       value={newTemplateCode}
                       onChange={e => setNewTemplateCode(e.target.value)}
-                      className="w-full px-3 py-2 border border-slate-300 rounded-xl bg-blue-50/40 outline-none font-bold text-blue-900"
+                      className="w-full px-3 py-2 border border-slate-300 rounded-xl bg-indigo-50/40 outline-none font-semibold text-indigo-950 text-sm"
                     >
                       {CONTRACT_TEMPLATES_210.map(tpl => (
                         <option key={tpl.code} value={tpl.code}>
@@ -773,72 +782,73 @@ export default function Stage3ProcurementView({ currentUser }: { currentUser?: U
                     </select>
                   </div>
                   <div>
-                    <label className="block font-bold text-slate-700 uppercase mb-1">Tên Gói Thầu</label>
+                    <label className="block text-sm font-medium text-slate-700 mb-1">Tên gói thầu</label>
                     <input
                       type="text"
                       value={newContractName}
                       onChange={e => setNewContractName(e.target.value)}
-                      className="w-full px-3 py-2 border border-slate-300 rounded-xl bg-white outline-none font-semibold"
+                      className="w-full px-3 py-2 border border-slate-300 rounded-xl bg-white outline-none font-semibold text-sm"
                     />
                   </div>
                 </div>
 
                 <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
                   <div>
-                    <label className="block font-bold text-slate-700 uppercase mb-1">Số Hợp Đồng</label>
+                    <label className="block text-sm font-medium text-slate-700 mb-1">Số hợp đồng</label>
                     <input
                       type="text"
                       value={newContractNo}
                       onChange={e => setNewContractNo(e.target.value)}
-                      className="w-full px-3 py-2 border border-slate-300 rounded-xl bg-white outline-none font-mono font-bold"
+                      className="w-full px-3 py-2 border border-slate-300 rounded-xl bg-white outline-none font-mono tabular-nums font-bold text-sm"
                     />
                   </div>
 
                   <div>
-                    <label className="block font-bold text-slate-700 uppercase mb-1">Tên Nhà Thầu Trúng Thầu</label>
+                    <label className="block text-sm font-medium text-slate-700 mb-1">Tên nhà thầu trúng thầu</label>
                     <input
                       type="text"
                       value={newContractorName}
                       onChange={e => setNewContractorName(e.target.value)}
-                      className="w-full px-3 py-2 border border-slate-300 rounded-xl bg-white outline-none font-semibold"
+                      className="w-full px-3 py-2 border border-slate-300 rounded-xl bg-white outline-none font-semibold text-sm"
                     />
                   </div>
                 </div>
 
                 <div className="grid grid-cols-1 sm:grid-cols-3 gap-4">
                   <div>
-                    <label className="block font-bold text-slate-700 uppercase mb-1">Loại Hợp Đồng (NĐ 210/2026)</label>
+                    <label className="block text-sm font-medium text-slate-700 mb-1">Loại hợp đồng (NĐ 210/2026)</label>
                     <select
                       value={newContractType}
                       onChange={e => setNewContractType(e.target.value as any)}
-                      className="w-full px-3 py-2 border border-slate-300 rounded-xl bg-white outline-none font-semibold"
+                      className="w-full px-3 py-2 border border-slate-300 rounded-xl bg-white outline-none font-semibold text-sm"
                     >
-                      <option value={ContractType.DON_GIA_DIEU_CHINH}>Hợp đồng Đơn giá điều chỉnh</option>
-                      <option value={ContractType.DON_GIA_CO_DINH}>Hợp đồng Đơn giá cố định</option>
-                      <option value={ContractType.TRON_GOI}>Hợp đồng Trọn gói</option>
-                      <option value={ContractType.THEO_THOI_GIAN}>Hợp đồng Theo thời gian</option>
-                      <option value={ContractType.HOP_DONG_KET_HOP}>Hợp đồng Kết hợp</option>
-                      <option value={ContractType.HOP_DONG_EPC}>Hợp đồng Tổng thầu EPC</option>
+                      <option value={ContractType.DON_GIA_DIEU_CHINH}>Hợp đồng đơn giá điều chỉnh</option>
+                      <option value={ContractType.DON_GIA_CO_DINH}>Hợp đồng đơn giá cố định</option>
+                      <option value={ContractType.TRON_GOI}>Hợp đồng trọn gói</option>
+                      <option value={ContractType.THEO_THOI_GIAN}>Hợp đồng theo thời gian</option>
+                      <option value={ContractType.HOP_DONG_KET_HOP}>Hợp đồng kết hợp</option>
+                      <option value={ContractType.HOP_DONG_EPC}>Hợp đồng tổng thầu EPC</option>
                     </select>
                   </div>
 
                   <div>
-                    <label className="block font-bold text-slate-700 uppercase mb-1">Giá Trị Trúng Thầu (VND)</label>
+                    <label className="block text-sm font-medium text-slate-700 mb-1">Giá trị trúng thầu (VNĐ)</label>
                     <input
-                      type="number"
-                      value={newContractValue}
-                      onChange={e => setNewContractValue(Number(e.target.value) || 0)}
-                      className="w-full px-3 py-2 border border-slate-300 rounded-xl bg-white outline-none font-mono font-bold"
+                      type="text"
+                      inputMode="numeric"
+                      value={formatCurrencyInputMask(newContractValue)}
+                      onChange={e => setNewContractValue(parseCurrencyInputMask(e.target.value))}
+                      className="w-full px-3 py-2 border border-slate-300 rounded-xl bg-white outline-none font-mono tabular-nums font-bold text-sm"
                     />
                   </div>
 
                   <div>
-                    <label className="block font-bold text-slate-700 uppercase mb-1">Tỷ Lệ Tạm Ứng (%)</label>
+                    <label className="block text-sm font-medium text-slate-700 mb-1">Tỷ lệ tạm ứng (%)</label>
                     <input
                       type="number"
                       value={newAdvancePct}
                       onChange={e => setNewAdvancePct(Number(e.target.value) || 0)}
-                      className="w-full px-3 py-2 border border-slate-300 rounded-xl bg-white outline-none font-mono"
+                      className="w-full px-3 py-2 border border-slate-300 rounded-xl bg-white outline-none font-mono tabular-nums text-sm"
                     />
                   </div>
                 </div>
@@ -846,59 +856,60 @@ export default function Stage3ProcurementView({ currentUser }: { currentUser?: U
                 {/* NĐ 210/2026 Extended Parameters: Performance Bond, Retention, Pn, Penalty */}
                 <div className="grid grid-cols-2 sm:grid-cols-4 gap-3 bg-slate-50 p-3.5 rounded-xl border border-slate-200">
                   <div>
-                    <label className="block font-bold text-slate-600 text-[11px] mb-1">Bảo Lãnh THHĐ (%)</label>
+                    <label className="block text-sm font-medium text-slate-700 mb-1">Bảo lãnh THHĐ (%)</label>
                     <input
                       type="number"
                       value={newPerformanceBondPct}
                       onChange={e => setNewPerformanceBondPct(Number(e.target.value) || 0)}
-                      className="w-full px-2.5 py-1.5 border rounded-lg bg-white font-mono font-bold"
+                      className="w-full px-2.5 py-1.5 border border-slate-300 rounded-lg bg-white font-mono tabular-nums font-bold"
                     />
                   </div>
                   <div>
-                    <label className="block font-bold text-slate-600 text-[11px] mb-1">Giữ Lại Bảo Hành (%)</label>
+                    <label className="block text-sm font-medium text-slate-700 mb-1">Giữ lại bảo hành (%)</label>
                     <input
                       type="number"
                       value={newRetentionPct}
                       onChange={e => setNewRetentionPct(Number(e.target.value) || 0)}
-                      className="w-full px-2.5 py-1.5 border rounded-lg bg-white font-mono font-bold"
+                      className="w-full px-2.5 py-1.5 border border-slate-300 rounded-lg bg-white font-mono tabular-nums font-bold"
                     />
                   </div>
                   <div>
-                    <label className="block font-bold text-slate-600 text-[11px] mb-1">Hệ Số Điều Chỉnh Giá (Pn)</label>
+                    <label className="block text-sm font-medium text-slate-700 mb-1">Hệ số điều chỉnh giá (Pn)</label>
                     <input
                       type="number"
                       step="0.01"
                       value={newPriceAdjustmentPn}
                       onChange={e => setNewPriceAdjustmentPn(Number(e.target.value) || 1)}
-                      className="w-full px-2.5 py-1.5 border rounded-lg bg-white font-mono font-bold text-blue-700"
+                      className="w-full px-2.5 py-1.5 border border-slate-300 rounded-lg bg-white font-mono tabular-nums font-bold text-indigo-700"
                     />
                   </div>
                   <div>
-                    <label className="block font-bold text-slate-600 text-[11px] mb-1">Phạt Vi Phạm HĐ (VND)</label>
+                    <label className="block text-sm font-medium text-slate-700 mb-1">Phạt vi phạm HĐ (VNĐ)</label>
                     <input
-                      type="number"
-                      value={newPenaltyAmount}
-                      onChange={e => setNewPenaltyAmount(Number(e.target.value) || 0)}
-                      className="w-full px-2.5 py-1.5 border rounded-lg bg-white font-mono font-bold text-red-600"
+                      type="text"
+                      inputMode="numeric"
+                      value={formatCurrencyInputMask(newPenaltyAmount)}
+                      onChange={e => setNewPenaltyAmount(parseCurrencyInputMask(e.target.value))}
+                      className="w-full px-2.5 py-1.5 border border-slate-300 rounded-lg bg-white font-mono tabular-nums font-bold text-red-600"
                     />
                   </div>
                 </div>
 
                 {/* NĐ 212/2026 Contractor Capability & CCHN Inputs */}
-                <div className="p-3.5 rounded-xl border border-blue-200 bg-blue-50/40 space-y-3">
-                  <div className="font-bold text-blue-900 flex items-center justify-between">
-                    <span>KIỂM TRA ĐIỀU KIỆN NĂNG LỰC NHÀ THẦU & CCHN CHỈ HUY TRƯỞNG (NĐ 212/2026/NĐ-CP)</span>
-                    <span className="text-[11px] font-mono bg-blue-100 text-blue-800 px-2 py-0.5 rounded">
-                      Công trình: {currentProject.CAP_CONG_TRINH}
+                <div className="p-3.5 rounded-xl border border-indigo-200 bg-indigo-50/30 space-y-3">
+                  <div className="font-bold text-indigo-950 flex items-center justify-between">
+                    <span>Kiểm tra điều kiện năng lực nhà thầu & CCHN chỉ huy trưởng (NĐ 212/2026/NĐ-CP)</span>
+                    <span className="text-[11px] font-semibold bg-indigo-100 text-indigo-800 px-2.5 py-0.5 rounded-full">
+                      Công trình: {formatStatusOrCodeVN(currentProject.CAP_CONG_TRINH)}
                     </span>
                   </div>
                   <div className="grid grid-cols-2 sm:grid-cols-4 gap-3">
                     <div>
-                      <label className="block text-[11px] font-bold text-slate-700 mb-1">Hạng CCNL Tổ Chức</label>
+                      <label className="block text-sm font-medium text-slate-700 mb-1">Hạng CCNL tổ chức</label>
                       <select
                         value={contractorCertGrade}
                         onChange={e => setContractorCertGrade(e.target.value)}
-                        className="w-full px-2 py-1.5 border rounded-lg bg-white font-bold"
+                        className="w-full px-2 py-1.5 border border-slate-300 rounded-lg bg-white font-semibold"
                       >
                         <option value={CapabilityGrade.HANG_I}>{CapabilityGrade.HANG_I}</option>
                         <option value={CapabilityGrade.HANG_II}>{CapabilityGrade.HANG_II}</option>
@@ -906,20 +917,20 @@ export default function Stage3ProcurementView({ currentUser }: { currentUser?: U
                       </select>
                     </div>
                     <div>
-                      <label className="block text-[11px] font-bold text-slate-700 mb-1">Hạn CCNL Tổ Chức</label>
+                      <label className="block text-sm font-medium text-slate-700 mb-1">Hạn CCNL tổ chức</label>
                       <input
                         type="date"
                         value={contractorCertExpiry}
                         onChange={e => setContractorCertExpiry(e.target.value)}
-                        className="w-full px-2 py-1.5 border rounded-lg bg-white font-mono"
+                        className="w-full px-2 py-1.5 border border-slate-300 rounded-lg bg-white font-mono tabular-nums"
                       />
                     </div>
                     <div>
-                      <label className="block text-[11px] font-bold text-slate-700 mb-1">Hạng CCHN Chỉ Huy Trưởng</label>
+                      <label className="block text-sm font-medium text-slate-700 mb-1">Hạng CCHN chỉ huy trưởng</label>
                       <select
                         value={commanderCchnGrade}
                         onChange={e => setCommanderCchnGrade(e.target.value)}
-                        className="w-full px-2 py-1.5 border rounded-lg bg-white font-bold"
+                        className="w-full px-2 py-1.5 border border-slate-300 rounded-lg bg-white font-semibold"
                       >
                         <option value={CapabilityGrade.HANG_I}>{CapabilityGrade.HANG_I}</option>
                         <option value={CapabilityGrade.HANG_II}>{CapabilityGrade.HANG_II}</option>
@@ -927,12 +938,12 @@ export default function Stage3ProcurementView({ currentUser }: { currentUser?: U
                       </select>
                     </div>
                     <div>
-                      <label className="block text-[11px] font-bold text-slate-700 mb-1">Hạn CCHN Chỉ Huy Trưởng</label>
+                      <label className="block text-sm font-medium text-slate-700 mb-1">Hạn CCHN chỉ huy trưởng</label>
                       <input
                         type="date"
                         value={commanderCchnExpiry}
                         onChange={e => setCommanderCchnExpiry(e.target.value)}
-                        className="w-full px-2 py-1.5 border rounded-lg bg-white font-mono"
+                        className="w-full px-2 py-1.5 border border-slate-300 rounded-lg bg-white font-mono tabular-nums"
                       />
                     </div>
                   </div>
@@ -947,39 +958,39 @@ export default function Stage3ProcurementView({ currentUser }: { currentUser?: U
                   <div className="flex items-center gap-2">
                     <Award className={`w-5 h-5 ${capabilityCheck212.isQualified ? 'text-emerald-600' : 'text-red-600'}`} />
                     <div>
-                      <div className="font-bold">ĐÁNH GIÁ NĂNG LỰC NHÀ THẦU & CCHN TỰ ĐỘNG (CSDL BXD - NĐ 212/2026)</div>
+                      <div className="font-bold">Đánh giá năng lực nhà thầu & CCHN tự động (CSDL BXD - NĐ 212/2026)</div>
                       <div className="text-[11px]">{capabilityCheck212.message}</div>
                     </div>
                   </div>
-                  <span className={`font-mono text-xs font-extrabold bg-white px-3 py-1 rounded-lg border ${
+                  <span className={`font-semibold text-xs bg-white px-3 py-1 rounded-lg border ${
                     capabilityCheck212.isQualified ? 'border-emerald-300 text-emerald-700' : 'border-red-300 text-red-700'
                   }`}>
-                    {capabilityCheck212.isQualified ? 'ĐẠT NĂNG LỰC' : 'CHẶN KÝ HĐ'}
+                    {capabilityCheck212.isQualified ? 'Đạt năng lực' : 'Chặn ký HĐ'}
                   </span>
                 </div>
 
                 {/* Live IPC Calculation Preview per NĐ 210/2026 */}
                 <div className="bg-slate-900 text-slate-100 p-4 rounded-xl space-y-2">
-                  <div className="text-[11px] font-bold text-blue-300 uppercase flex justify-between">
-                    <span>MÔ PHỎNG TÍNH TOÁN KỲ THANH TOÁN IPC (GIẢ ĐỊNH KHỐI LƯỢNG ĐỢT = 25% HĐ - NĐ 210/2026)</span>
-                    <span>Pn = {newPriceAdjustmentPn}</span>
+                  <div className="text-xs font-bold text-sky-400 flex justify-between">
+                    <span>Mô phỏng tính toán kỳ thanh toán IPC (Giả định khối lượng đợt = 25% HĐ - NĐ 210/2026)</span>
+                    <span className="font-mono tabular-nums">Pn = {newPriceAdjustmentPn}</span>
                   </div>
                   <div className="grid grid-cols-2 sm:grid-cols-4 gap-2 text-[11px] pt-1">
-                    <div className="bg-slate-800 p-2 rounded-lg">
-                      <div className="text-slate-400">Giá trị sau điều chỉnh Pn</div>
-                      <div className="font-mono font-bold text-white">{formatVND(ipcPreview210.adjustedGrossAmount)}</div>
+                    <div className="bg-slate-800 p-2.5 rounded-lg">
+                      <div className="text-slate-300">Giá trị sau điều chỉnh Pn</div>
+                      <div className="font-mono tabular-nums font-bold text-white mt-0.5">{formatVND(ipcPreview210.adjustedGrossAmount)}</div>
                     </div>
-                    <div className="bg-slate-800 p-2 rounded-lg">
-                      <div className="text-slate-400">Thu hồi tạm ứng ({newAdvancePct}%)</div>
-                      <div className="font-mono font-bold text-amber-300">-{formatVND(ipcPreview210.advanceRecoveryAmount)}</div>
+                    <div className="bg-slate-800 p-2.5 rounded-lg">
+                      <div className="text-slate-300 tabular-nums">Thu hồi tạm ứng ({newAdvancePct}%)</div>
+                      <div className="font-mono tabular-nums font-bold text-amber-300 mt-0.5">-{formatVND(ipcPreview210.advanceRecoveryAmount)}</div>
                     </div>
-                    <div className="bg-slate-800 p-2 rounded-lg">
-                      <div className="text-slate-400">Giữ lại bảo hành ({newRetentionPct}%)</div>
-                      <div className="font-mono font-bold text-purple-300">-{formatVND(ipcPreview210.retentionWarrantyAmount)}</div>
+                    <div className="bg-slate-800 p-2.5 rounded-lg">
+                      <div className="text-slate-300 tabular-nums">Giữ lại bảo hành ({newRetentionPct}%)</div>
+                      <div className="font-mono tabular-nums font-bold text-purple-300 mt-0.5">-{formatVND(ipcPreview210.retentionWarrantyAmount)}</div>
                     </div>
-                    <div className="bg-emerald-950/80 border border-emerald-700 p-2 rounded-lg">
+                    <div className="bg-emerald-950/80 border border-emerald-700 p-2.5 rounded-lg">
                       <div className="text-emerald-300">Thực nhận giải ngân (Net IPC)</div>
-                      <div className="font-mono font-extrabold text-emerald-400">{formatVND(ipcPreview210.netPayableAmount)}</div>
+                      <div className="font-mono tabular-nums font-extrabold text-emerald-400 mt-0.5">{formatVND(ipcPreview210.netPayableAmount)}</div>
                     </div>
                   </div>
                 </div>
@@ -989,17 +1000,17 @@ export default function Stage3ProcurementView({ currentUser }: { currentUser?: U
                   <button
                     type="button"
                     onClick={handleGenerateContractSample}
-                    className="flex-1 bg-slate-100 hover:bg-slate-200 text-slate-800 text-xs font-bold py-2.5 rounded-xl border border-slate-300 transition-all flex items-center justify-center gap-1.5"
+                    className="flex-1 bg-white hover:bg-slate-50 text-slate-700 text-xs font-medium py-2.5 rounded-xl border border-slate-300 transition-all flex items-center justify-center gap-1.5 shadow-2xs"
                   >
-                    <Download className="w-4 h-4 text-blue-600" /> Xuất Hợp Đồng Mẫu QĐ 1040 / NĐ 210
+                    <Download className="w-4 h-4 text-slate-600" /> Xuất hợp đồng mẫu QĐ 1040 / NĐ 210
                   </button>
 
                   <button
                     type="button"
                     onClick={handleAddNewContract}
-                    className="flex-1 bg-blue-600 hover:bg-blue-700 text-white text-xs font-bold py-2.5 rounded-xl transition-all shadow-md flex items-center justify-center gap-1.5"
+                    className="flex-1 bg-indigo-600 hover:bg-indigo-700 text-white text-xs font-semibold py-2.5 rounded-xl transition-all shadow-sm flex items-center justify-center gap-1.5"
                   >
-                    <CheckCircle className="w-4 h-4" /> Ký Kết Hợp Đồng Trúng Thầu
+                    <CheckCircle className="w-4 h-4" /> Ký kết hợp đồng trúng thầu
                   </button>
                 </div>
               </div>
@@ -1008,26 +1019,26 @@ export default function Stage3ProcurementView({ currentUser }: { currentUser?: U
             {/* Signed Contracts Side Panel */}
             <div className="bg-white p-6 rounded-2xl border border-slate-200 shadow-sm space-y-4">
               <h3 className="text-base font-bold text-slate-900 border-b border-slate-100 pb-3">
-                DANH SÁCH HỢP ĐỒNG ĐÃ KÝ KẾT
+                Danh sách hợp đồng đã ký kết
               </h3>
 
               <div className="space-y-3">
                 {contractItems.map(c => (
                   <div key={c.contractId} className="p-4 bg-slate-50 rounded-xl border border-slate-200 space-y-2">
                     <div className="flex justify-between items-center text-xs">
-                      <span className="font-mono font-bold text-blue-700">{c.contractNo}</span>
-                      <span className="bg-emerald-100 text-emerald-800 px-2 py-0.5 rounded font-bold text-[10px]">
-                        {c.contractType}
+                      <span className="font-mono tabular-nums font-bold text-indigo-700">{c.contractNo}</span>
+                      <span className="bg-emerald-100 text-emerald-800 px-2.5 py-0.5 rounded-full font-semibold text-[11px]">
+                        {formatStatusOrCodeVN(c.contractType)}
                       </span>
                     </div>
                     <div className="text-xs font-bold text-slate-900">{c.contractName}</div>
                     <div className="text-[11px] text-slate-600">Nhà thầu: {c.contractorName}</div>
                     {c.templateCode && (
-                      <div className="text-[10px] font-mono text-purple-700 bg-purple-50 px-2 py-0.5 rounded inline-block">
+                      <div className="text-[11px] font-mono tabular-nums text-indigo-700 bg-indigo-50 px-2 py-0.5 rounded inline-block">
                         Mẫu: {c.templateCode} | Pn: {c.priceAdjustmentFactorPn ?? 1.0}
                       </div>
                     )}
-                    <div className="text-xs font-mono font-extrabold text-emerald-700">
+                    <div className="text-xs font-mono tabular-nums font-extrabold text-emerald-700">
                       Giá trị: {formatVND(c.contractValue)}
                     </div>
                   </div>

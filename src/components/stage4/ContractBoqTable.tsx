@@ -1,6 +1,6 @@
 import React, { useState } from 'react';
 import { BoqItem, ProjectData } from '../../pms/T2_Services';
-import { formatVND, safeNumber, generateExcelTemplate } from '../../pms/T1_Utils';
+import { formatVND, safeNumber, generateExcelTemplate, formatCurrencyInputMask, parseCurrencyInputMask } from '../../pms/T1_Utils';
 import ExcelDragDropUploader from '../ExcelDragDropUploader';
 import { Building2, Download, Upload, PlusCircle, Pencil, Trash2, Check, X } from 'lucide-react';
 import { toast } from 'sonner';
@@ -79,8 +79,8 @@ export default function ContractBoqTable({ project, contractId, boqItems: initia
       <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-3 border-b border-slate-100 pb-3">
         <div>
           <h3 className="text-base font-bold text-slate-900 flex items-center gap-2">
-            <Building2 className="w-5 h-5 text-blue-600" />
-            KHỐI A: BẢNG DỰ TOÁN BOQ HỢP ĐỒNG GỐC (CONTRACT BOQ)
+            <Building2 className="w-5 h-5 text-indigo-600" />
+            Khối A: Bảng dự toán BOQ hợp đồng gốc
           </h3>
           <p className="text-xs text-slate-500">Danh mục mã định mức, đơn giá và tổng giá trị gói thầu ký kết</p>
         </div>
@@ -88,16 +88,16 @@ export default function ContractBoqTable({ project, contractId, boqItems: initia
         <div className="flex items-center gap-2">
           <button
             onClick={() => generateExcelTemplate('BOQ')}
-            className="bg-slate-100 hover:bg-slate-200 text-slate-700 text-xs font-bold px-3 py-2 rounded-xl transition-all border border-slate-300 flex items-center gap-1.5"
+            className="bg-white border border-slate-300 text-slate-700 hover:bg-slate-50 text-xs font-medium px-3 py-2 rounded-xl transition-all flex items-center gap-1.5 shadow-2xs"
           >
-            <Download className="w-4 h-4 text-blue-600" /> Tải Template BOQ
+            <Download className="w-4 h-4 text-slate-600" /> Tải Template BOQ
           </button>
 
           <button
             onClick={() => setIsExcelModalOpen(true)}
-            className="bg-emerald-600 hover:bg-emerald-700 text-white text-xs font-bold px-3 py-2 rounded-xl transition-all shadow-sm flex items-center gap-1.5"
+            className="bg-white border border-slate-300 text-slate-700 hover:bg-slate-50 text-xs font-medium px-3 py-2 rounded-xl transition-all flex items-center gap-1.5 shadow-2xs"
           >
-            <Upload className="w-4 h-4" /> Upload Excel BOQ
+            <Upload className="w-4 h-4 text-slate-600" /> Upload Excel BOQ
           </button>
         </div>
       </div>
@@ -105,15 +105,15 @@ export default function ContractBoqTable({ project, contractId, boqItems: initia
       {/* BOQ Table */}
       <div className="overflow-x-auto border border-slate-200 rounded-xl">
         <table className="w-full text-xs text-left text-slate-600">
-          <thead className="bg-slate-100 text-slate-700 uppercase font-bold border-b border-slate-200">
+          <thead className="bg-slate-50 text-slate-700 font-semibold border-b border-slate-200">
             <tr>
               <th className="px-3 py-2.5">Mã ĐM</th>
-              <th className="px-3 py-2.5">Tên Hạng Mục Công Việc</th>
+              <th className="px-3 py-2.5">Tên hạng mục công việc</th>
               <th className="px-3 py-2.5 text-center">ĐVT</th>
-              <th className="px-3 py-2.5 text-right font-mono">Khối Lượng HĐ</th>
-              <th className="px-3 py-2.5 text-right font-mono">Đơn Giá HĐ (VND)</th>
-              <th className="px-3 py-2.5 text-right font-mono">Thành Tiền (VND)</th>
-              <th className="px-3 py-2.5 text-center">Thao Tác</th>
+              <th className="px-3 py-2.5 text-right">Khối lượng HĐ</th>
+              <th className="px-3 py-2.5 text-right">Đơn giá HĐ (VNĐ)</th>
+              <th className="px-3 py-2.5 text-right">Thành tiền (VNĐ)</th>
+              <th className="px-3 py-2.5 text-center">Thao tác</th>
             </tr>
           </thead>
           <tbody className="divide-y divide-slate-100 font-medium">
@@ -121,19 +121,19 @@ export default function ContractBoqTable({ project, contractId, boqItems: initia
               const isEditing = editingItemId === item.itemId;
               return (
                 <tr key={item.itemId} className="hover:bg-slate-50">
-                  <td className="px-3 py-2 font-mono font-bold text-blue-700">
+                  <td className="px-3 py-2 font-mono tabular-nums font-bold text-indigo-700">
                     {isEditing ? (
                       <input
                         type="text"
                         value={draftItem.itemCode || ''}
                         onChange={e => setDraftItem({ ...draftItem, itemCode: e.target.value })}
-                        className="w-20 px-1.5 py-0.5 border rounded font-mono"
+                        className="w-20 px-1.5 py-0.5 border rounded font-mono tabular-nums"
                       />
                     ) : (
                       item.itemCode
                     )}
                   </td>
-                  <td className="px-3 py-2 font-bold text-slate-900">
+                  <td className="px-3 py-2 font-semibold text-slate-900">
                     {isEditing ? (
                       <input
                         type="text"
@@ -157,31 +157,32 @@ export default function ContractBoqTable({ project, contractId, boqItems: initia
                       item.unit
                     )}
                   </td>
-                  <td className="px-3 py-2 text-right font-mono font-bold">
+                  <td className="px-3 py-2 text-right font-mono tabular-nums font-bold">
                     {isEditing ? (
                       <input
                         type="number"
                         value={draftItem.quantity || 0}
                         onChange={e => setDraftItem({ ...draftItem, quantity: Number(e.target.value) || 0 })}
-                        className="w-24 px-1.5 py-0.5 border rounded text-right font-mono font-bold"
+                        className="w-24 px-1.5 py-0.5 border rounded text-right font-mono tabular-nums font-bold"
                       />
                     ) : (
                       item.quantity.toLocaleString('vi-VN')
                     )}
                   </td>
-                  <td className="px-3 py-2 text-right font-mono">
+                  <td className="px-3 py-2 text-right font-mono tabular-nums">
                     {isEditing ? (
                       <input
-                        type="number"
-                        value={draftItem.unitPrice || 0}
-                        onChange={e => setDraftItem({ ...draftItem, unitPrice: Number(e.target.value) || 0 })}
-                        className="w-28 px-1.5 py-0.5 border rounded text-right font-mono"
+                        type="text"
+                        inputMode="numeric"
+                        value={formatCurrencyInputMask(draftItem.unitPrice || 0)}
+                        onChange={e => setDraftItem({ ...draftItem, unitPrice: parseCurrencyInputMask(e.target.value) })}
+                        className="w-32 px-1.5 py-0.5 border rounded text-right font-mono tabular-nums"
                       />
                     ) : (
                       formatVND(item.unitPrice)
                     )}
                   </td>
-                  <td className="px-3 py-2 text-right font-mono font-bold text-emerald-700">
+                  <td className="px-3 py-2 text-right font-mono tabular-nums font-bold text-emerald-700">
                     {isEditing ? (
                       formatVND(safeNumber(draftItem.quantity) * safeNumber(draftItem.unitPrice))
                     ) : (
@@ -196,7 +197,7 @@ export default function ContractBoqTable({ project, contractId, boqItems: initia
                       </div>
                     ) : (
                       <div className="flex justify-center gap-2">
-                        <button onClick={() => handleEditItem(item)} className="text-blue-600 hover:text-blue-800 p-1"><Pencil className="w-4 h-4" /></button>
+                        <button onClick={() => handleEditItem(item)} className="text-indigo-600 hover:text-indigo-800 p-1"><Pencil className="w-4 h-4" /></button>
                         <button onClick={() => handleDeleteItem(item)} className="text-red-500 hover:text-red-700 p-1"><Trash2 className="w-4 h-4" /></button>
                       </div>
                     )}
@@ -210,9 +211,9 @@ export default function ContractBoqTable({ project, contractId, boqItems: initia
 
       <button
         onClick={handleAddNewRow}
-        className="w-full bg-slate-50 hover:bg-blue-50/60 text-blue-700 border-2 border-dashed border-blue-200 font-bold text-xs py-2.5 rounded-xl transition-all flex items-center justify-center gap-2"
+        className="w-full bg-slate-50 hover:bg-indigo-50/60 text-indigo-700 border-2 border-dashed border-indigo-200 font-semibold text-xs py-2.5 rounded-xl transition-all flex items-center justify-center gap-2"
       >
-        <PlusCircle className="w-4 h-4" /> [+ THÊM CÔNG TÁC BOQ MỚI]
+        <PlusCircle className="w-4 h-4" /> Thêm công tác BOQ mới
       </button>
 
       {/* Excel Import Drag-and-Drop Modal */}

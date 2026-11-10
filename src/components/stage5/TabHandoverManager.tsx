@@ -1,6 +1,6 @@
 import React, { useState } from 'react';
 import { ProjectData, HandoverDossierRecord } from '../../pms/T2_Services';
-import { generateExcelTemplate, parseExcelFile, filterClosureDataByScope } from '../../pms/T1_Utils';
+import { generateExcelTemplate, parseExcelFile, filterClosureDataByScope, formatStatusOrCodeVN } from '../../pms/T1_Utils';
 import {
   FileCheck,
   Download,
@@ -190,8 +190,8 @@ export default function TabHandoverManager({
       <div className="bg-white p-5 rounded-2xl border border-slate-200 shadow-sm flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4">
         <div>
           <h3 className="text-base font-bold text-slate-900 flex items-center gap-2">
-            <FolderArchive className="w-5 h-5 text-blue-600" />
-            DANH MỤC HỒ SƠ NGHIỆM THU, BẢN VẼ HOÀN CÔNG & BÀN GIAO CÔNG TRÌNH
+            <FolderArchive className="w-5 h-5 text-indigo-600" />
+            Danh mục hồ sơ nghiệm thu, bản vẽ hoàn công & bàn giao công trình
           </h3>
           <p className="text-xs text-slate-500 mt-0.5">
             Quản lý lưu trữ tài liệu bàn giao kỹ thuật, bản vẽ hoàn công (DWG/PDF) & Quy trình bảo trì (TT 40/2026/TT-BXD)
@@ -201,21 +201,21 @@ export default function TabHandoverManager({
         <div className="flex flex-wrap items-center gap-2">
           <button
             onClick={handleDownloadTemplate}
-            className="px-3.5 py-2 bg-slate-100 hover:bg-slate-200 text-slate-700 text-xs font-bold rounded-xl transition-all flex items-center gap-1.5 border border-slate-300"
+            className="px-3.5 py-2 bg-white border border-slate-300 text-slate-700 hover:bg-slate-50 text-xs font-semibold rounded-xl transition-all flex items-center gap-1.5 shadow-2xs"
           >
-            <Download className="w-3.5 h-3.5" /> Template Bàn Giao
+            <Download className="w-3.5 h-3.5" /> Tải Template
           </button>
 
-          <label className="px-3.5 py-2 bg-emerald-50 hover:bg-emerald-100 text-emerald-800 text-xs font-bold rounded-xl transition-all cursor-pointer flex items-center gap-1.5 border border-emerald-200">
-            <Upload className="w-3.5 h-3.5 text-emerald-600" /> Upload Excel
+          <label className="px-3.5 py-2 bg-white border border-slate-300 text-slate-700 hover:bg-slate-50 text-xs font-semibold rounded-xl transition-all cursor-pointer flex items-center gap-1.5 shadow-2xs">
+            <Upload className="w-3.5 h-3.5 text-slate-600" /> Upload Excel
             <input type="file" accept=".xlsx, .xls" onChange={handleUploadExcel} className="hidden" />
           </label>
 
           <button
             onClick={handleOpenAddModal}
-            className="px-4 py-2 bg-blue-600 hover:bg-blue-700 text-white text-xs font-bold rounded-xl transition-all shadow-sm flex items-center gap-1.5"
+            className="px-4 py-2 bg-indigo-600 hover:bg-indigo-700 text-white text-xs font-semibold rounded-xl transition-all shadow-sm flex items-center gap-1.5"
           >
-            <Plus className="w-4 h-4" /> Thêm Hồ Sơ Bàn Giao
+            <Plus className="w-4 h-4" /> Thêm hồ sơ bàn giao
           </button>
         </div>
       </div>
@@ -225,20 +225,20 @@ export default function TabHandoverManager({
         <div className="overflow-x-auto">
           <table className="w-full text-left text-xs border-collapse">
             <thead>
-              <tr className="bg-slate-100 border-b border-slate-200 text-slate-700 font-bold uppercase tracking-wider">
-                <th className="p-3.5 min-w-[100px]">Mã Hồ Sơ</th>
-                <th className="p-3.5 min-w-[280px]">Tên Hồ Sơ Bàn Giao / Bản Vẽ Hoàn Công</th>
-                <th className="p-3.5 min-w-[160px]">Loại Hồ Sơ</th>
-                <th className="p-3.5 min-w-[200px]">Đơn Vị Bàn Giao</th>
-                <th className="p-3.5 min-w-[110px]">Ngày Nộp</th>
-                <th className="p-3.5 min-w-[120px]">Trạng Thái</th>
-                <th className="p-3.5 text-center min-w-[130px]">Thao Tác</th>
+              <tr className="bg-slate-50 border-b border-slate-200 text-slate-700 font-semibold">
+                <th className="p-3.5 min-w-[100px]">Mã hồ sơ</th>
+                <th className="p-3.5 min-w-[280px]">Tên hồ sơ bàn giao / Bản vẽ hoàn công</th>
+                <th className="p-3.5 min-w-[160px]">Loại hồ sơ</th>
+                <th className="p-3.5 min-w-[200px]">Đơn vị bàn giao</th>
+                <th className="p-3.5 min-w-[110px]">Ngày nộp</th>
+                <th className="p-3.5 min-w-[120px]">Trạng thái</th>
+                <th className="p-3.5 text-center min-w-[130px]">Thao tác</th>
               </tr>
             </thead>
             <tbody className="divide-y divide-slate-200">
               {displayedHandovers.map(item => (
                 <tr key={item.handoverId} className="hover:bg-slate-50 transition-colors">
-                  <td className="p-3.5 font-mono font-bold text-blue-900">{item.dossierCode}</td>
+                  <td className="p-3.5 font-mono tabular-nums font-bold text-indigo-900">{item.dossierCode}</td>
                   <td className="p-3.5">
                     <div className="font-bold text-slate-900">{item.dossierName}</div>
                     {item.fileName && (
@@ -246,27 +246,27 @@ export default function TabHandoverManager({
                         href={item.fileUrl}
                         target="_blank"
                         rel="noreferrer"
-                        className="text-[11px] text-blue-600 hover:underline inline-flex items-center gap-1 mt-0.5 font-mono"
+                        className="text-[11px] text-indigo-600 hover:underline inline-flex items-center gap-1 mt-0.5 font-mono"
                       >
-                        <FileText className="w-3.5 h-3.5 text-blue-500" /> {item.fileName}
+                        <FileText className="w-3.5 h-3.5 text-indigo-500" /> {item.fileName}
                       </a>
                     )}
                   </td>
                   <td className="p-3.5">
-                    <span className="bg-slate-100 text-slate-800 text-[10px] font-bold px-2.5 py-1 rounded-full uppercase border border-slate-200">
-                      {item.dossierType.replace(/_/g, ' ')}
+                    <span className="bg-slate-100 text-slate-800 text-[11px] font-semibold px-2.5 py-1 rounded-full border border-slate-200">
+                      {formatStatusOrCodeVN(item.dossierType)}
                     </span>
                   </td>
                   <td className="p-3.5 font-medium text-slate-700">{item.submittingUnit}</td>
-                  <td className="p-3.5 font-mono text-slate-600">{item.handoverDate}</td>
+                  <td className="p-3.5 font-mono tabular-nums text-slate-600">{item.handoverDate}</td>
                   <td className="p-3.5">
                     {item.status === 'ĐÃ_NGHIỆM_THU' || item.status === 'ĐÃ_PHÊ_DUYỆT' ? (
-                      <span className="inline-flex items-center gap-1 bg-emerald-100 text-emerald-800 text-[10px] font-bold px-2.5 py-1 rounded-full border border-emerald-200">
-                        <CheckCircle2 className="w-3 h-3 text-emerald-600" /> {item.status}
+                      <span className="inline-flex items-center gap-1 bg-emerald-100 text-emerald-800 text-[11px] font-semibold px-2.5 py-1 rounded-full border border-emerald-200">
+                        <CheckCircle2 className="w-3 h-3 text-emerald-600" /> {formatStatusOrCodeVN(item.status)}
                       </span>
                     ) : (
-                      <span className="inline-flex items-center gap-1 bg-amber-100 text-amber-800 text-[10px] font-bold px-2.5 py-1 rounded-full border border-amber-200">
-                        <AlertCircle className="w-3 h-3 text-amber-600" /> {item.status}
+                      <span className="inline-flex items-center gap-1 bg-amber-100 text-amber-800 text-[11px] font-semibold px-2.5 py-1 rounded-full border border-amber-200">
+                        <AlertCircle className="w-3 h-3 text-amber-600" /> {formatStatusOrCodeVN(item.status)}
                       </span>
                     )}
                   </td>
@@ -274,7 +274,7 @@ export default function TabHandoverManager({
                     <div className="inline-flex items-center gap-1">
                       <button
                         onClick={() => handleOpenEditModal(item)}
-                        className="p-1.5 text-blue-600 hover:bg-blue-50 rounded-lg transition-all"
+                        className="p-1.5 text-indigo-600 hover:bg-indigo-50 rounded-lg transition-all"
                         title="Sửa hồ sơ"
                       >
                         <Edit2 className="w-4 h-4" />
@@ -309,8 +309,8 @@ export default function TabHandoverManager({
           <div className="bg-white rounded-2xl border border-slate-200 shadow-2xl w-full max-w-xl p-6 space-y-4 text-xs">
             <div className="flex justify-between items-center border-b border-slate-100 pb-3">
               <h4 className="text-base font-bold text-slate-900 flex items-center gap-2">
-                <FileCheck className="w-5 h-5 text-blue-600" />
-                {editingId ? 'CẬP NHẬT HỒ SƠ BÀN GIAO' : 'THÊM MỚI HỒ SƠ BÀN GIAO CÔNG TRÌNH'}
+                <FileCheck className="w-5 h-5 text-indigo-600" />
+                {editingId ? 'Cập nhật hồ sơ bàn giao' : 'Thêm mới hồ sơ bàn giao công trình'}
               </h4>
               <button onClick={() => setShowModal(false)} className="text-slate-400 hover:text-slate-600 font-bold text-lg">✕</button>
             </div>
@@ -318,32 +318,32 @@ export default function TabHandoverManager({
             <form onSubmit={handleSaveForm} className="space-y-3">
               <div className="grid grid-cols-2 gap-3">
                 <div>
-                  <label className="block font-bold text-slate-700 mb-1">MÃ HỒ SƠ *</label>
+                  <label className="block text-sm font-medium text-slate-700 mb-1">Mã hồ sơ *</label>
                   <input
                     type="text"
                     value={formData.dossierCode || ''}
                     onChange={e => setFormData({ ...formData, dossierCode: e.target.value })}
-                    className="w-full px-3 py-2 border border-slate-300 rounded-xl font-mono font-bold outline-none"
+                    className="w-full px-3 py-2 border border-slate-300 rounded-xl font-mono tabular-nums font-bold outline-none"
                     required
                   />
                 </div>
                 <div>
-                  <label className="block font-bold text-slate-700 mb-1">LOẠI HỒ SƠ *</label>
+                  <label className="block text-sm font-medium text-slate-700 mb-1">Loại hồ sơ *</label>
                   <select
                     value={formData.dossierType || 'BIÊN_BẢN_NGHIỆM_THU'}
                     onChange={e => setFormData({ ...formData, dossierType: e.target.value as any })}
                     className="w-full px-3 py-2 border border-slate-300 rounded-xl bg-white outline-none"
                   >
-                    <option value="BIÊN_BẢN_NGHIỆM_THU">BIÊN BẢN NGHIỆM THU</option>
-                    <option value="BẢN_VẼ_HOÀN_CÔNG">BẢN VẼ HOÀN CÔNG (DWG/PDF)</option>
-                    <option value="QUY_TRÌNH_VẬN_HÀNH">QUY TRÌNH VẬN HÀNH & BẢO TRÌ</option>
-                    <option value="HỒ_SƠ_KHÁC">HỒ SƠ KHÁC</option>
+                    <option value="BIÊN_BẢN_NGHIỆM_THU">Biên bản nghiệm thu</option>
+                    <option value="BẢN_VẼ_HOÀN_CÔNG">Bản vẽ hoàn công (DWG/PDF)</option>
+                    <option value="QUY_TRÌNH_VẬN_HÀNH">Quy trình vận hành & bảo trì</option>
+                    <option value="HỒ_SƠ_KHÁC">Hồ sơ khác</option>
                   </select>
                 </div>
               </div>
 
               <div>
-                <label className="block font-bold text-slate-700 mb-1">TÊN HỒ SƠ BÀN GIAO / BẢN VẼ *</label>
+                <label className="block text-sm font-medium text-slate-700 mb-1">Tên hồ sơ bàn giao / Bản vẽ *</label>
                 <input
                   type="text"
                   value={formData.dossierName || ''}
@@ -356,7 +356,7 @@ export default function TabHandoverManager({
 
               <div className="grid grid-cols-2 gap-3">
                 <div>
-                  <label className="block font-bold text-slate-700 mb-1">ĐƠN VỊ BÀN GIAO</label>
+                  <label className="block text-sm font-medium text-slate-700 mb-1">Đơn vị bàn giao</label>
                   <input
                     type="text"
                     value={formData.submittingUnit || ''}
@@ -365,18 +365,18 @@ export default function TabHandoverManager({
                   />
                 </div>
                 <div>
-                  <label className="block font-bold text-slate-700 mb-1">NGÀY BÀN GIAO</label>
+                  <label className="block text-sm font-medium text-slate-700 mb-1">Ngày bàn giao</label>
                   <input
                     type="date"
                     value={formData.handoverDate || ''}
                     onChange={e => setFormData({ ...formData, handoverDate: e.target.value })}
-                    className="w-full px-3 py-2 border border-slate-300 rounded-xl font-mono outline-none"
+                    className="w-full px-3 py-2 border border-slate-300 rounded-xl font-mono tabular-nums outline-none"
                   />
                 </div>
               </div>
 
               <div>
-                <label className="block font-bold text-slate-700 mb-1">TỆP ĐÍNH KÈM (PDF, DWG, ZIP ≤ 100MB)</label>
+                <label className="block text-sm font-medium text-slate-700 mb-1">Tệp đính kèm (PDF, DWG, ZIP ≤ 100MB)</label>
                 <input
                   type="file"
                   onChange={e => setUploadFile(e.target.files?.[0] || null)}
@@ -388,15 +388,15 @@ export default function TabHandoverManager({
                 <button
                   type="button"
                   onClick={() => setShowModal(false)}
-                  className="px-4 py-2 bg-slate-100 hover:bg-slate-200 text-slate-700 font-bold rounded-xl"
+                  className="px-4 py-2 bg-white border border-slate-300 hover:bg-slate-50 text-slate-700 font-semibold rounded-xl"
                 >
-                  Hủy Thao Tác
+                  Hủy thao tác
                 </button>
                 <button
                   type="submit"
-                  className="px-5 py-2 bg-blue-600 hover:bg-blue-700 text-white font-bold rounded-xl shadow-sm"
+                  className="px-5 py-2 bg-indigo-600 hover:bg-indigo-700 text-white font-semibold rounded-xl shadow-sm"
                 >
-                  Lưu Hồ Sơ
+                  Lưu hồ sơ
                 </button>
               </div>
             </form>

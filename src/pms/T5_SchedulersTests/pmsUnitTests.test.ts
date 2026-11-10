@@ -6,7 +6,7 @@
 
 import { PmsService, UserService } from '../T2_Services';
 import { ProjectGroup, ConstructionGrade, ApprovalStatus, GpmbStatus, db, MASTER_WORKFLOW_TEMPLATES_2026 } from '../T0_Config';
-import { safeNumber, safeString, formatVND, validateRequiredAttachments, checkEstimateExceedsTMDT, parseExcelArrayBufferToJSON, updateBoqRow, recalculateTotalBudget, calculateBiddingSavings, validateRequiredAttachmentsStage3, validatePackageDisbursement, canUserAccessProject, filterProjectsForUser, uploadToUserPersonalDrive, shareDriveFolderWithUsers, verifyGoogleDriveConnection, decodeGoogleJwt, matchUserRole, authenticateUserCredentials, updateUserAccountInSystem, evaluateCostOverrunRisk206, calculateIpcNetPayment210, validateContractorAndCchn212, evaluateSequentialWorkflowLock, verifyElectronicCertifiedFile } from '../T1_Utils';
+import { safeNumber, safeString, formatVND, validateRequiredAttachments, checkEstimateExceedsTMDT, parseExcelArrayBufferToJSON, updateBoqRow, recalculateTotalBudget, calculateBiddingSavings, validateRequiredAttachmentsStage3, validatePackageDisbursement, canUserAccessProject, filterProjectsForUser, uploadToUserPersonalDrive, shareDriveFolderWithUsers, verifyGoogleDriveConnection, decodeGoogleJwt, matchUserRole, authenticateUserCredentials, updateUserAccountInSystem, evaluateCostOverrunRisk206, calculateIpcNetPayment210, validateContractorAndCchn212, evaluateSequentialWorkflowLock, verifyElectronicCertifiedFile, formatCurrencyInputMask, parseCurrencyInputMask, formatStatusOrCodeVN } from '../T1_Utils';
 import * as XLSX from 'xlsx';
 
 function runPmsUnitTestSuite() {
@@ -362,6 +362,19 @@ function runPmsUnitTestSuite() {
   assert(
     adminUpdateAttempt.success === true && adminUpdateAttempt.updatedTemplate?.version === 'v2.2 (2026)',
     'RBAC Master Templates & Audit Trail: Cho phép ADMIN cập nhật phiên bản biểu mẫu gốc lên v2.2 (2026) và tự động lưu vết Audit Trail'
+  );
+
+  // --- TEST CASE 18: Enterprise SaaS UI/UX Currency Input Mask & Status Text Formatting ---
+  console.log('\n--- TEST 18: Enterprise SaaS UI/UX Currency Input Mask & Status Text Formatting ---');
+  assert(
+    formatCurrencyInputMask(35000000000) === '35.000.000.000' && parseCurrencyInputMask('35.000.000.000') === 35000000000,
+    'Currency Input Mask: Tự động phân tách hàng nghìn bằng dấu chấm (35.000.000.000) và giải mã chính xác số nguyên 35000000000'
+  );
+  assert(
+    formatStatusOrCodeVN('ĐƠN_GIÁ_ĐIỀU_CHỈNH') === 'Đơn giá điều chỉnh' &&
+    formatStatusOrCodeVN('CAP_IV') === 'Cấp IV' &&
+    formatStatusOrCodeVN('ĐANG_THỰC_HIỆN') === 'Đang thực hiện',
+    'Status & Classification Formatter: Chuẩn hóa các chuỗi có dấu gạch dưới (ĐƠN_GIÁ_ĐIỀU_CHỈNH, CAP_IV, ĐANG_THỰC_HIỆN) sang tiếng Việt chuẩn'
   );
 
   console.log(`\n================ SUMMARY: ${passed} PASSED, ${failed} FAILED ================`);

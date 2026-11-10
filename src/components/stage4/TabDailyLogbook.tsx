@@ -1,7 +1,7 @@
 import React, { useState, useEffect } from 'react';
 import { ProjectData, ConstructionWorkRecord, ConsultingProductRecord, MaterialSubmittalRecord, ELogbookItem } from '../../pms/T2_Services';
 import { PmsHandlers } from '../../pms/T3_Handlers';
-import { formatVND, safeNumber, generateExcelTemplate } from '../../pms/T1_Utils';
+import { formatVND, safeNumber, generateExcelTemplate, formatCurrencyInputMask, parseCurrencyInputMask, formatStatusOrCodeVN } from '../../pms/T1_Utils';
 import ExcelDragDropUploader from '../ExcelDragDropUploader';
 import { HardHat, MapPin, FileCheck, Calendar, Download, Upload, PlusCircle, Pencil, Trash2, Check, X, Building2, Camera, ShieldCheck, Leaf, AlertTriangle } from 'lucide-react';
 import { toast } from 'sonner';
@@ -203,105 +203,105 @@ export default function TabDailyLogbook({ project, selectedPackageId, onRefreshD
       <div className="bg-white p-6 rounded-2xl border border-slate-200 shadow-sm space-y-4">
         <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-2 border-b border-slate-100 pb-3">
           <h3 className="text-base font-bold text-slate-900 flex items-center gap-2">
-            <HardHat className="w-5 h-5 text-blue-600" />
-            NHẬT KÝ THI CÔNG ĐIỆN TỬ HIỆN TRƯỜNG (KÝ SỐ KÉP SMARTCA & GPS - NĐ 207/2026/NĐ-CP)
+            <HardHat className="w-5 h-5 text-indigo-600" />
+            Nhật ký thi công điện tử hiện trường (Ký số kép SmartCA & GPS - NĐ 207/2026/NĐ-CP)
           </h3>
-          <span className="bg-blue-50 text-blue-800 text-[11px] font-bold px-3 py-1 rounded-full border border-blue-200">
-            Đã lưu: {eLogs.length} bản ghi Nhật ký điện tử
+          <span className="bg-indigo-50 text-indigo-800 text-[11px] font-semibold px-3 py-1 rounded-full border border-indigo-200 tabular-nums">
+            Đã lưu: {eLogs.length} bản ghi nhật ký điện tử
           </span>
         </div>
 
         <div className="grid grid-cols-1 sm:grid-cols-4 gap-4 text-xs font-medium">
           <div>
-            <label className="block text-slate-700 font-bold mb-1">Ngày Thi Công</label>
-            <input type="date" value={logDate} onChange={e => setLogDate(e.target.value)} className="w-full px-3 py-2 border rounded-xl bg-slate-50 font-mono" />
+            <label className="block text-sm font-medium text-slate-700 mb-1">Ngày thi công</label>
+            <input type="date" value={logDate} onChange={e => setLogDate(e.target.value)} className="w-full px-3 py-2 border border-slate-300 rounded-xl bg-slate-50 font-mono tabular-nums text-sm" />
           </div>
           <div>
-            <label className="block text-slate-700 font-bold mb-1">Thời Tiết Hiện Trường</label>
-            <input type="text" value={logWeather} onChange={e => setLogWeather(e.target.value)} className="w-full px-3 py-2 border rounded-xl bg-slate-50" />
+            <label className="block text-sm font-medium text-slate-700 mb-1">Thời tiết hiện trường</label>
+            <input type="text" value={logWeather} onChange={e => setLogWeather(e.target.value)} className="w-full px-3 py-2 border border-slate-300 rounded-xl bg-slate-50 text-sm" />
           </div>
           <div>
-            <label className="block text-slate-700 font-bold mb-1">Nhân Công (Người)</label>
-            <input type="number" value={logWorkers} onChange={e => setLogWorkers(Number(e.target.value) || 0)} className="w-full px-3 py-2 border rounded-xl bg-slate-50 font-mono font-bold" />
+            <label className="block text-sm font-medium text-slate-700 mb-1">Nhân công (Người)</label>
+            <input type="number" value={logWorkers} onChange={e => setLogWorkers(Number(e.target.value) || 0)} className="w-full px-3 py-2 border border-slate-300 rounded-xl bg-slate-50 font-mono tabular-nums font-bold text-sm" />
           </div>
           <div>
-            <label className="block text-slate-700 font-bold mb-1">Máy Thi Công Huy Động</label>
-            <input type="text" value={logMachines} onChange={e => setLogMachines(e.target.value)} className="w-full px-3 py-2 border rounded-xl bg-slate-50" />
+            <label className="block text-sm font-medium text-slate-700 mb-1">Máy thi công huy động</label>
+            <input type="text" value={logMachines} onChange={e => setLogMachines(e.target.value)} className="w-full px-3 py-2 border border-slate-300 rounded-xl bg-slate-50 text-sm" />
           </div>
         </div>
 
         <div>
-          <label className="block text-slate-700 font-bold text-xs mb-1">Nội dung Khối lượng thực hiện trong ngày</label>
-          <textarea rows={2} value={logVolume} onChange={e => setLogVolume(e.target.value)} className="w-full px-3 py-2 border rounded-xl bg-slate-50 text-xs" />
+          <label className="block text-sm font-medium text-slate-700 mb-1">Nội dung khối lượng thực hiện trong ngày</label>
+          <textarea rows={2} value={logVolume} onChange={e => setLogVolume(e.target.value)} className="w-full px-3 py-2 border border-slate-300 rounded-xl bg-slate-50 text-sm" />
         </div>
 
         {/* Dual Digital Signatures & Safety Checklist per NĐ 207/2026 */}
-        <div className="grid grid-cols-1 sm:grid-cols-3 gap-3 bg-blue-50/50 p-3.5 rounded-xl border border-blue-200 text-xs">
+        <div className="grid grid-cols-1 sm:grid-cols-3 gap-3 bg-indigo-50/40 p-3.5 rounded-xl border border-indigo-200 text-xs">
           <div>
-            <label className="block font-bold text-slate-700 mb-1">Chữ Ký Số 1: Chỉ Huy Trưởng Nhà Thầu</label>
+            <label className="block text-sm font-medium text-slate-700 mb-1">Chữ ký số 1: Chỉ huy trưởng nhà thầu</label>
             <input
               type="text"
               value={contractorSigner}
               onChange={e => setContractorSigner(e.target.value)}
-              className="w-full px-2.5 py-1.5 border rounded-lg bg-white font-semibold"
+              className="w-full px-2.5 py-1.5 border border-slate-300 rounded-lg bg-white font-semibold"
             />
           </div>
           <div>
-            <label className="block font-bold text-slate-700 mb-1">Chữ Ký Số 2: Tư Vấn Giám Sát Trưởng</label>
+            <label className="block text-sm font-medium text-slate-700 mb-1">Chữ ký số 2: Tư vấn giám sát trưởng</label>
             <input
               type="text"
               value={supervisorSigner}
               onChange={e => setSupervisorSigner(e.target.value)}
-              className="w-full px-2.5 py-1.5 border rounded-lg bg-white font-semibold"
+              className="w-full px-2.5 py-1.5 border border-slate-300 rounded-lg bg-white font-semibold"
             />
           </div>
           <div className="flex items-center pt-4">
-            <label className="flex items-center gap-2 cursor-pointer font-bold text-emerald-900">
+            <label className="flex items-center gap-2 cursor-pointer font-semibold text-emerald-900">
               <input
                 type="checkbox"
                 checked={safetyChecklistPassed}
                 onChange={e => setSafetyChecklistPassed(e.target.checked)}
                 className="w-4 h-4 accent-emerald-600 rounded"
               />
-              <span>Đạt Checklist ATLĐ, Giàn giáo & Thiết bị nâng (NĐ 207/2026)</span>
+              <span>Đạt Checklist ATLĐ, giàn giáo & thiết bị nâng (NĐ 207/2026)</span>
             </label>
           </div>
         </div>
 
         {/* GPS Image attachment simulation */}
         <div className="bg-slate-50 p-3 rounded-xl border border-slate-200 flex items-center justify-between text-xs">
-          <div className="flex items-center gap-2 text-slate-600 font-semibold">
-            <Camera className="w-4 h-4 text-blue-600" />
+          <div className="flex items-center gap-2 text-slate-600 font-semibold tabular-nums">
+            <Camera className="w-4 h-4 text-indigo-600" />
             <span>Ảnh chụp hiện trường GPS (Định vị 20.8467° N, 106.6838° E)</span>
           </div>
-          <span className="bg-emerald-100 text-emerald-800 font-bold px-2 py-0.5 rounded text-[10px]">
+          <span className="bg-emerald-100 text-emerald-800 font-semibold px-2.5 py-0.5 rounded-full text-[11px]">
             Đã gắn Geo-Tagging GPS
           </span>
         </div>
 
         <div className="flex justify-between items-center text-xs pt-1">
-          <span className="text-slate-500 flex items-center gap-1">
+          <span className="text-slate-500 flex items-center gap-1 tabular-nums">
             <MapPin className="w-4 h-4 text-emerald-600" /> Vị trí GPS: 20.8467° N, 106.6838° E (Xác thực hiện trường)
           </span>
           <button
             onClick={handleSaveELogbookEntry}
-            className="bg-blue-600 hover:bg-blue-700 text-white font-bold px-5 py-2 rounded-xl transition-all shadow-sm flex items-center gap-1.5"
+            className="bg-indigo-600 hover:bg-indigo-700 text-white font-semibold px-5 py-2 rounded-xl transition-all shadow-sm flex items-center gap-1.5"
           >
-            <FileCheck className="w-4 h-4" /> Ký Số Kép & Lưu Nhật Ký Điện Tử
+            <FileCheck className="w-4 h-4" /> Ký số kép & lưu nhật ký điện tử
           </button>
         </div>
 
         {/* Saved E-Logbook Records */}
         {eLogs.length > 0 && (
           <div className="pt-3 border-t border-slate-100 space-y-2">
-            <div className="text-xs font-bold text-slate-700 uppercase">Lịch sử Nhật ký điện tử đã ký số kép (TT 41/2026/TT-BXD):</div>
+            <div className="text-xs font-semibold text-slate-700">Lịch sử nhật ký điện tử đã ký số kép (TT 41/2026/TT-BXD):</div>
             <div className="grid grid-cols-1 md:grid-cols-2 gap-2.5">
               {eLogs.slice(0, 4).map(log => (
                 <div key={log.LOG_ID} className="p-3 rounded-xl bg-slate-50 border border-slate-200 text-xs space-y-1">
                   <div className="flex justify-between items-center">
-                    <span className="font-mono font-bold text-blue-700">[{log.LOG_ID}] Ngày {log.NGAY_GHI}</span>
-                    <span className="bg-emerald-100 text-emerald-800 text-[10px] font-bold px-2 py-0.5 rounded">
-                      Ký số Kép SmartCA
+                    <span className="font-mono tabular-nums font-bold text-indigo-700">[{log.LOG_ID}] Ngày {log.NGAY_GHI}</span>
+                    <span className="bg-emerald-100 text-emerald-800 text-[11px] font-semibold px-2 py-0.5 rounded-full">
+                      Ký số kép SmartCA
                     </span>
                   </div>
                   <div className="font-semibold text-slate-900">{log.NOI_DUNG_CONG_VIEC}</div>
@@ -321,63 +321,63 @@ export default function TabDailyLogbook({ project, selectedPackageId, onRefreshD
           <div>
             <h3 className="text-base font-bold text-slate-900 flex items-center gap-2">
               <ShieldCheck className="w-5 h-5 text-emerald-600" />
-              KIỂM SOÁT VẬT LIỆU XÂY DỰNG ĐẦU VÀO: CO/CQ, HỢP QUY QCVN & VLXD XANH (NĐ 209/2026/NĐ-CP)
+              Kiểm soát vật liệu xây dựng đầu vào: CO/CQ, Hợp quy QCVN & VLXD xanh (NĐ 209/2026/NĐ-CP)
             </h3>
             <p className="text-xs text-slate-500">
               Bắt buộc nghiệm thu vật liệu đầu vào đạt Hợp quy QCVN & thí nghiệm LAS-XD trước khi đưa vào thi công nghiệm thu
             </p>
           </div>
-          <span className="bg-emerald-50 text-emerald-800 text-xs font-bold px-3 py-1 rounded-full border border-emerald-200 flex items-center gap-1">
-            <Leaf className="w-3.5 h-3.5 text-emerald-600" /> VLXD Xanh: {materials.filter(m => m.isGreenMaterial).length}/{materials.length} lô
+          <span className="bg-emerald-50 text-emerald-800 text-xs font-semibold px-3 py-1 rounded-full border border-emerald-200 flex items-center gap-1 tabular-nums">
+            <Leaf className="w-3.5 h-3.5 text-emerald-600" /> VLXD xanh: {materials.filter(m => m.isGreenMaterial).length}/{materials.length} lô
           </span>
         </div>
 
         {/* Add Material Batch Form */}
         <div className="grid grid-cols-1 sm:grid-cols-5 gap-3 bg-emerald-50/40 p-3.5 rounded-xl border border-emerald-200 text-xs">
           <div className="sm:col-span-2">
-            <label className="block font-bold text-slate-700 mb-1">Tên Vật Liệu / Cấu Kiện Xây Dựng</label>
+            <label className="block text-sm font-medium text-slate-700 mb-1">Tên vật liệu / Cấu kiện xây dựng</label>
             <input
               type="text"
               value={newMatName}
               onChange={e => setNewMatName(e.target.value)}
               placeholder="VD: Xi măng PCB40 Bỉm Sơn / Thép D20..."
-              className="w-full px-2.5 py-1.5 border rounded-lg bg-white font-semibold"
+              className="w-full px-2.5 py-2 border border-slate-300 rounded-lg bg-white font-semibold"
             />
           </div>
           <div>
-            <label className="block font-bold text-slate-700 mb-1">Số Lô (Batch Code)</label>
+            <label className="block text-sm font-medium text-slate-700 mb-1">Số lô (Batch code)</label>
             <input
               type="text"
               value={newMatBatch}
               onChange={e => setNewMatBatch(e.target.value)}
-              className="w-full px-2.5 py-1.5 border rounded-lg bg-white font-mono"
+              className="w-full px-2.5 py-2 border border-slate-300 rounded-lg bg-white font-mono tabular-nums"
             />
           </div>
           <div>
-            <label className="block font-bold text-slate-700 mb-1">Chứng Nhận Hợp Quy QCVN</label>
+            <label className="block text-sm font-medium text-slate-700 mb-1">Chứng nhận hợp quy QCVN</label>
             <input
               type="text"
               value={newMatQcvn}
               onChange={e => setNewMatQcvn(e.target.value)}
-              className="w-full px-2.5 py-1.5 border rounded-lg bg-white"
+              className="w-full px-2.5 py-2 border border-slate-300 rounded-lg bg-white"
             />
           </div>
           <div className="flex flex-col justify-between">
-            <label className="flex items-center gap-1.5 font-bold text-emerald-900 cursor-pointer mt-1">
+            <label className="flex items-center gap-1.5 font-semibold text-emerald-900 cursor-pointer mt-1">
               <input
                 type="checkbox"
                 checked={newMatIsGreen}
                 onChange={e => setNewMatIsGreen(e.target.checked)}
                 className="w-3.5 h-3.5 accent-emerald-600"
               />
-              <span>VLXD Xanh / Tiết kiệm NL</span>
+              <span>VLXD xanh / Tiết kiệm NL</span>
             </label>
             <button
               type="button"
               onClick={handleAddMaterialSubmittal}
-              className="bg-emerald-600 hover:bg-emerald-700 text-white font-bold py-1.5 px-3 rounded-lg transition-all"
+              className="bg-indigo-600 hover:bg-indigo-700 text-white font-semibold py-2 px-3 rounded-lg transition-all"
             >
-              + Duyệt Lô VLXD
+              + Duyệt lô VLXD
             </button>
           </div>
         </div>
@@ -385,35 +385,35 @@ export default function TabDailyLogbook({ project, selectedPackageId, onRefreshD
         {/* Material Submittals Table */}
         <div className="overflow-x-auto border border-slate-200 rounded-xl">
           <table className="w-full text-xs text-left text-slate-600">
-            <thead className="bg-slate-100 text-slate-700 uppercase font-bold border-b border-slate-200">
+            <thead className="bg-slate-50 text-slate-700 font-semibold border-b border-slate-200">
               <tr>
-                <th className="px-3 py-2">Mã Lô</th>
-                <th className="px-3 py-2">Tên Vật Liệu Xây Dựng</th>
-                <th className="px-3 py-2">Xuất Xứ CO/CQ</th>
-                <th className="px-3 py-2">Chứng Nhận Hợp Quy (NĐ 209/2026)</th>
-                <th className="px-3 py-2 text-center">VLXD Xanh</th>
-                <th className="px-3 py-2 text-center">Trạng Thái QC</th>
+                <th className="px-3 py-2.5">Mã lô</th>
+                <th className="px-3 py-2.5">Tên vật liệu xây dựng</th>
+                <th className="px-3 py-2.5">Xuất xứ CO/CQ</th>
+                <th className="px-3 py-2.5">Chứng nhận hợp quy (NĐ 209/2026)</th>
+                <th className="px-3 py-2.5 text-center">VLXD xanh</th>
+                <th className="px-3 py-2.5 text-center">Trạng thái QC</th>
               </tr>
             </thead>
             <tbody className="divide-y divide-slate-100 font-medium">
               {materials.map(mat => (
                 <tr key={mat.materialId} className="hover:bg-slate-50">
-                  <td className="px-3 py-2 font-mono font-bold text-blue-700">{mat.batchCode}</td>
-                  <td className="px-3 py-2 font-bold text-slate-900">{mat.materialName}</td>
+                  <td className="px-3 py-2 font-mono tabular-nums font-bold text-indigo-700">{mat.batchCode}</td>
+                  <td className="px-3 py-2 font-semibold text-slate-900">{mat.materialName}</td>
                   <td className="px-3 py-2">{mat.originCoCq}</td>
-                  <td className="px-3 py-2 font-mono text-slate-700">{mat.qcvnCertNo} ({mat.testLabName})</td>
+                  <td className="px-3 py-2 font-mono tabular-nums text-slate-700">{mat.qcvnCertNo} ({mat.testLabName})</td>
                   <td className="px-3 py-2 text-center">
                     {mat.isGreenMaterial ? (
-                      <span className="bg-emerald-100 text-emerald-800 px-2 py-0.5 rounded-full text-[10px] font-bold">
-                        Đạt VLXD Xanh
+                      <span className="bg-emerald-100 text-emerald-800 px-2.5 py-0.5 rounded-full text-[11px] font-semibold">
+                        Đạt VLXD xanh
                       </span>
                     ) : (
                       <span className="text-slate-400">Tiêu chuẩn</span>
                     )}
                   </td>
                   <td className="px-3 py-2 text-center">
-                    <span className="bg-blue-100 text-blue-800 px-2.5 py-0.5 rounded-full text-[10px] font-bold">
-                      {mat.status}
+                    <span className="bg-indigo-100 text-indigo-800 px-2.5 py-0.5 rounded-full text-[11px] font-semibold">
+                      {formatStatusOrCodeVN(mat.status)}
                     </span>
                   </td>
                 </tr>
@@ -428,8 +428,8 @@ export default function TabDailyLogbook({ project, selectedPackageId, onRefreshD
         <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-3 border-b border-slate-100 pb-3">
           <div>
             <h3 className="text-base font-bold text-slate-900 flex items-center gap-2">
-              <Building2 className="w-5 h-5 text-blue-600" />
-              KHỐI LƯỢNG THI CÔNG NGHIỆM THU THEO GÓI [{selectedPackageId}]
+              <Building2 className="w-5 h-5 text-indigo-600" />
+              Khối lượng thi công nghiệm thu theo gói <span className="font-mono tabular-nums">[{selectedPackageId}]</span>
             </h3>
             <p className="text-xs text-slate-500">Khối lượng nghiệm thu thực tế chi tiết làm cơ sở lập bảng giá trị thanh toán</p>
           </div>
@@ -437,16 +437,16 @@ export default function TabDailyLogbook({ project, selectedPackageId, onRefreshD
           <div className="flex items-center gap-2">
             <button
               onClick={() => { setExcelSchemaType('BOQ'); generateExcelTemplate('BOQ'); }}
-              className="bg-slate-100 hover:bg-slate-200 text-slate-700 text-xs font-bold px-3 py-2 rounded-xl transition-all border border-slate-300 flex items-center gap-1.5"
+              className="bg-white border border-slate-300 text-slate-700 hover:bg-slate-50 text-xs font-medium px-3 py-2 rounded-xl transition-all flex items-center gap-1.5 shadow-2xs"
             >
-              <Download className="w-4 h-4 text-blue-600" /> Tải Template BOQ
+              <Download className="w-4 h-4 text-slate-600" /> Tải Template BOQ
             </button>
 
             <button
               onClick={() => { setExcelSchemaType('BOQ'); setIsExcelModalOpen(true); }}
-              className="bg-emerald-600 hover:bg-emerald-700 text-white text-xs font-bold px-3 py-2 rounded-xl transition-all shadow-sm flex items-center gap-1.5"
+              className="bg-white border border-slate-300 text-slate-700 hover:bg-slate-50 text-xs font-medium px-3 py-2 rounded-xl transition-all flex items-center gap-1.5 shadow-2xs"
             >
-              <Upload className="w-4 h-4" /> Upload Bóc Tách Excel
+              <Upload className="w-4 h-4 text-slate-600" /> Upload bóc tách Excel
             </button>
           </div>
         </div>
@@ -454,15 +454,15 @@ export default function TabDailyLogbook({ project, selectedPackageId, onRefreshD
         {/* Construction Works Table */}
         <div className="overflow-x-auto border border-slate-200 rounded-xl">
           <table className="w-full text-xs text-left text-slate-600">
-            <thead className="bg-slate-100 text-slate-700 uppercase font-bold border-b border-slate-200">
+            <thead className="bg-slate-50 text-slate-700 font-semibold border-b border-slate-200">
               <tr>
                 <th className="px-3 py-2.5">Mã ĐM</th>
-                <th className="px-3 py-2.5">Tên Công Tác Nghiệm Thu</th>
+                <th className="px-3 py-2.5">Tên công tác nghiệm thu</th>
                 <th className="px-3 py-2.5 text-center">ĐVT</th>
-                <th className="px-3 py-2.5 text-right">Khối Lượng NT</th>
-                <th className="px-3 py-2.5 text-right">Đơn Giá (VND)</th>
-                <th className="px-3 py-2.5 text-right">Thành Tiền (VND)</th>
-                <th className="px-3 py-2.5 text-center">Thao Tác</th>
+                <th className="px-3 py-2.5 text-right">Khối lượng NT</th>
+                <th className="px-3 py-2.5 text-right">Đơn giá (VNĐ)</th>
+                <th className="px-3 py-2.5 text-right">Thành tiền (VNĐ)</th>
+                <th className="px-3 py-2.5 text-center">Thao tác</th>
               </tr>
             </thead>
             <tbody className="divide-y divide-slate-100 font-medium">
@@ -470,19 +470,19 @@ export default function TabDailyLogbook({ project, selectedPackageId, onRefreshD
                 const isEditing = editingWorkId === work.workId;
                 return (
                   <tr key={work.workId} className="hover:bg-slate-50">
-                    <td className="px-3 py-2 font-mono font-bold text-blue-700">
+                    <td className="px-3 py-2 font-mono tabular-nums font-bold text-indigo-700">
                       {isEditing ? (
                         <input
                           type="text"
                           value={draftWork.itemCode || ''}
                           onChange={e => setDraftWork({ ...draftWork, itemCode: e.target.value })}
-                          className="w-20 px-1.5 py-0.5 border rounded font-mono"
+                          className="w-20 px-1.5 py-0.5 border rounded font-mono tabular-nums"
                         />
                       ) : (
                         work.itemCode
                       )}
                     </td>
-                    <td className="px-3 py-2 font-bold text-slate-900">
+                    <td className="px-3 py-2 font-semibold text-slate-900">
                       {isEditing ? (
                         <input
                           type="text"
@@ -506,31 +506,32 @@ export default function TabDailyLogbook({ project, selectedPackageId, onRefreshD
                         work.unit
                       )}
                     </td>
-                    <td className="px-3 py-2 text-right font-mono font-bold">
+                    <td className="px-3 py-2 text-right font-mono tabular-nums font-bold">
                       {isEditing ? (
                         <input
                           type="number"
                           value={draftWork.acceptedQty || 0}
                           onChange={e => setDraftWork({ ...draftWork, acceptedQty: Number(e.target.value) || 0 })}
-                          className="w-20 px-1.5 py-0.5 border rounded text-right font-mono font-bold"
+                          className="w-20 px-1.5 py-0.5 border rounded text-right font-mono tabular-nums font-bold"
                         />
                       ) : (
                         work.acceptedQty.toLocaleString('vi-VN')
                       )}
                     </td>
-                    <td className="px-3 py-2 text-right font-mono">
+                    <td className="px-3 py-2 text-right font-mono tabular-nums">
                       {isEditing ? (
                         <input
-                          type="number"
-                          value={draftWork.unitPrice || 0}
-                          onChange={e => setDraftWork({ ...draftWork, unitPrice: Number(e.target.value) || 0 })}
-                          className="w-28 px-1.5 py-0.5 border rounded text-right font-mono"
+                          type="text"
+                          inputMode="numeric"
+                          value={formatCurrencyInputMask(draftWork.unitPrice || 0)}
+                          onChange={e => setDraftWork({ ...draftWork, unitPrice: parseCurrencyInputMask(e.target.value) })}
+                          className="w-32 px-1.5 py-0.5 border rounded text-right font-mono tabular-nums"
                         />
                       ) : (
                         formatVND(work.unitPrice)
                       )}
                     </td>
-                    <td className="px-3 py-2 text-right font-mono font-bold text-emerald-700">
+                    <td className="px-3 py-2 text-right font-mono tabular-nums font-bold text-emerald-700">
                       {isEditing ? (
                         formatVND((safeNumber(draftWork.acceptedQty) * safeNumber(draftWork.unitPrice)))
                       ) : (
@@ -545,7 +546,7 @@ export default function TabDailyLogbook({ project, selectedPackageId, onRefreshD
                         </div>
                       ) : (
                         <div className="flex justify-center gap-2">
-                          <button onClick={() => handleEditWork(work)} className="text-blue-600 hover:text-blue-800 p-1"><Pencil className="w-4 h-4" /></button>
+                          <button onClick={() => handleEditWork(work)} className="text-indigo-600 hover:text-indigo-800 p-1"><Pencil className="w-4 h-4" /></button>
                           <button onClick={() => handleDeleteWork(work)} className="text-red-500 hover:text-red-700 p-1"><Trash2 className="w-4 h-4" /></button>
                         </div>
                       )}
@@ -559,9 +560,9 @@ export default function TabDailyLogbook({ project, selectedPackageId, onRefreshD
 
         <button
           onClick={handleAddNewWorkRow}
-          className="w-full bg-slate-50 hover:bg-emerald-50/60 text-emerald-700 border-2 border-dashed border-emerald-300 font-bold text-xs py-2.5 rounded-xl transition-all flex items-center justify-center gap-2"
+          className="w-full bg-slate-50 hover:bg-indigo-50/60 text-indigo-700 border-2 border-dashed border-indigo-200 font-semibold text-xs py-2.5 rounded-xl transition-all flex items-center justify-center gap-2"
         >
-          <PlusCircle className="w-4 h-4" /> [+ THÊM KHỐI LƯỢNG NGHIỆM THU THI CÔNG MỚI]
+          <PlusCircle className="w-4 h-4" /> Thêm khối lượng nghiệm thu thi công mới
         </button>
       </div>
 

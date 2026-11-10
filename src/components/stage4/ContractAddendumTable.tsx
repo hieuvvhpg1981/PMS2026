@@ -1,6 +1,6 @@
 import React, { useState } from 'react';
 import { ContractAddendum } from '../../pms/T2_Services';
-import { formatVND } from '../../pms/T1_Utils';
+import { formatVND, formatCurrencyInputMask, parseCurrencyInputMask } from '../../pms/T1_Utils';
 import { FileText, Plus, Pencil, Trash2, Check, X, Paperclip } from 'lucide-react';
 import { toast } from 'sonner';
 
@@ -69,31 +69,31 @@ export default function ContractAddendumTable({ contractId, addendums: initialAd
       <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-3 border-b border-slate-100 pb-3">
         <div>
           <h3 className="text-base font-bold text-slate-900 flex items-center gap-2">
-            <FileText className="w-5 h-5 text-purple-600" />
-            KHỐI B: DANH SÁCH PHỤ LỤC HỢP ĐỒNG ĐIỀU CHỈNH (ADDENDUMS)
+            <FileText className="w-5 h-5 text-indigo-600" />
+            Khối B: Danh sách phụ lục hợp đồng điều chỉnh
           </h3>
-          <p className="text-xs text-slate-500">Quản lý các Phụ lục điều chỉnh giá trị, tiến độ và bổ sung khối lượng</p>
+          <p className="text-xs text-slate-500">Quản lý các phụ lục điều chỉnh giá trị, tiến độ và bổ sung khối lượng</p>
         </div>
 
         <button
           onClick={handleAddNewAddendum}
-          className="bg-purple-600 hover:bg-purple-700 text-white font-bold text-xs px-4 py-2 rounded-xl transition-all shadow-sm flex items-center gap-1.5"
+          className="bg-indigo-600 hover:bg-indigo-700 text-white font-semibold text-xs px-4 py-2 rounded-xl transition-all shadow-sm flex items-center gap-1.5"
         >
-          <Plus className="w-4 h-4" /> [+ Tạo Phụ Lục Mới]
+          <Plus className="w-4 h-4" /> Tạo phụ lục mới
         </button>
       </div>
 
       <div className="overflow-x-auto border border-slate-200 rounded-xl">
         <table className="w-full text-xs text-left text-slate-600">
-          <thead className="bg-slate-100 text-slate-700 uppercase font-bold border-b border-slate-200">
+          <thead className="bg-slate-50 text-slate-700 font-semibold border-b border-slate-200">
             <tr>
               <th className="px-3 py-2.5">Mã PL</th>
-              <th className="px-3 py-2.5">Số Phụ Lục Hợp Đồng</th>
-              <th className="px-3 py-2.5 font-mono">Ngày Ký</th>
-              <th className="px-3 py-2.5 text-right font-mono">Giá Trị Điều Chỉnh (+/- VND)</th>
-              <th className="px-3 py-2.5 text-center font-mono">Gia Hạn (Ngày)</th>
-              <th className="px-3 py-2.5">Lý Do & Nội Dung Điều Chỉnh</th>
-              <th className="px-3 py-2.5 text-center">Thao Tác</th>
+              <th className="px-3 py-2.5">Số phụ lục hợp đồng</th>
+              <th className="px-3 py-2.5">Ngày ký</th>
+              <th className="px-3 py-2.5 text-right">Giá trị điều chỉnh (+/- VNĐ)</th>
+              <th className="px-3 py-2.5 text-center">Gia hạn (Ngày)</th>
+              <th className="px-3 py-2.5">Lý do & nội dung điều chỉnh</th>
+              <th className="px-3 py-2.5 text-center">Thao tác</th>
             </tr>
           </thead>
           <tbody className="divide-y divide-slate-100 font-medium">
@@ -101,61 +101,62 @@ export default function ContractAddendumTable({ contractId, addendums: initialAd
               const isEditing = editingAddendumId === add.addendumId;
               return (
                 <tr key={add.addendumId} className="hover:bg-slate-50">
-                  <td className="px-3 py-2 font-mono font-bold text-purple-700">
+                  <td className="px-3 py-2 font-mono tabular-nums font-bold text-indigo-700">
                     {isEditing ? (
                       <input
                         type="text"
                         value={draftAddendum.addendumId || ''}
                         onChange={e => setDraftAddendum({ ...draftAddendum, addendumId: e.target.value })}
-                        className="w-16 px-1.5 py-0.5 border rounded font-mono"
+                        className="w-16 px-1.5 py-0.5 border rounded font-mono tabular-nums"
                       />
                     ) : (
                       add.addendumId
                     )}
                   </td>
-                  <td className="px-3 py-2 font-bold text-slate-900">
+                  <td className="px-3 py-2 font-mono tabular-nums font-bold text-slate-900">
                     {isEditing ? (
                       <input
                         type="text"
                         value={draftAddendum.addendumNo || ''}
                         onChange={e => setDraftAddendum({ ...draftAddendum, addendumNo: e.target.value })}
-                        className="w-full px-1.5 py-0.5 border rounded font-bold"
+                        className="w-full px-1.5 py-0.5 border rounded font-mono tabular-nums font-bold"
                       />
                     ) : (
                       add.addendumNo
                     )}
                   </td>
-                  <td className="px-3 py-2 font-mono">
+                  <td className="px-3 py-2 font-mono tabular-nums">
                     {isEditing ? (
                       <input
                         type="date"
                         value={draftAddendum.signDate || ''}
                         onChange={e => setDraftAddendum({ ...draftAddendum, signDate: e.target.value })}
-                        className="px-1.5 py-0.5 border rounded font-mono"
+                        className="px-1.5 py-0.5 border rounded font-mono tabular-nums"
                       />
                     ) : (
                       add.signDate
                     )}
                   </td>
-                  <td className="px-3 py-2 text-right font-mono font-bold text-emerald-700">
+                  <td className="px-3 py-2 text-right font-mono tabular-nums font-bold text-emerald-700">
                     {isEditing ? (
                       <input
-                        type="number"
-                        value={draftAddendum.adjustedValue || 0}
-                        onChange={e => setDraftAddendum({ ...draftAddendum, adjustedValue: Number(e.target.value) || 0 })}
-                        className="w-32 px-1.5 py-0.5 border rounded text-right font-mono font-bold"
+                        type="text"
+                        inputMode="numeric"
+                        value={formatCurrencyInputMask(draftAddendum.adjustedValue || 0)}
+                        onChange={e => setDraftAddendum({ ...draftAddendum, adjustedValue: parseCurrencyInputMask(e.target.value) })}
+                        className="w-36 px-1.5 py-0.5 border rounded text-right font-mono tabular-nums font-bold"
                       />
                     ) : (
                       `+${formatVND(add.adjustedValue)}`
                     )}
                   </td>
-                  <td className="px-3 py-2 text-center font-bold text-blue-700">
+                  <td className="px-3 py-2 text-center font-mono tabular-nums font-bold text-indigo-700">
                     {isEditing ? (
                       <input
                         type="number"
                         value={draftAddendum.adjustedDurationDays || 0}
                         onChange={e => setDraftAddendum({ ...draftAddendum, adjustedDurationDays: Number(e.target.value) || 0 })}
-                        className="w-16 px-1 py-0.5 border rounded text-center font-mono font-bold"
+                        className="w-16 px-1 py-0.5 border rounded text-center font-mono tabular-nums font-bold"
                       />
                     ) : (
                       `+${add.adjustedDurationDays}`
@@ -181,7 +182,7 @@ export default function ContractAddendumTable({ contractId, addendums: initialAd
                       </div>
                     ) : (
                       <div className="flex justify-center gap-2">
-                        <button onClick={() => handleEditAddendum(add)} className="text-blue-600 hover:text-blue-800 p-1"><Pencil className="w-4 h-4" /></button>
+                        <button onClick={() => handleEditAddendum(add)} className="text-indigo-600 hover:text-indigo-800 p-1"><Pencil className="w-4 h-4" /></button>
                         <button onClick={() => handleDeleteAddendum(add)} className="text-red-500 hover:text-red-700 p-1"><Trash2 className="w-4 h-4" /></button>
                       </div>
                     )}

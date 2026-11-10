@@ -1,1 +1,34 @@
 @import "tailwindcss";
+
+@theme {
+  --font-sans: 'Plus Jakarta Sans', 'Inter', system-ui, -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+  --font-mono: 'JetBrains Mono', 'Inter', ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, monospace;
+}
+
+@layer base {
+  html,
+  body {
+    font-family: 'Plus Jakarta Sans', 'Inter', system-ui, -apple-system, BlinkMacSystemFont, sans-serif;
+    color: #1e293b;
+    -webkit-font-smoothing: antialiased;
+    -moz-osx-font-smoothing: grayscale;
+  }
+
+  /* Chuẩn hóa Form Labels: Sentence case, 14px, font-weight 500, màu #334155 */
+  label:not(.flex):not(.inline-flex) {
+    font-size: 0.875rem;
+    line-height: 1.25rem;
+    font-weight: 500;
+    color: #334155;
+    text-transform: none;
+  }
+}
+
+/* Bắt buộc tabular-nums cho con số thẳng hàng dọc (tiền tệ, diện tích, ngày tháng, mã hồ sơ) */
+.tabular-nums,
+.font-mono,
+input[type="number"],
+input[type="date"] {
+  font-variant-numeric: tabular-nums;
+}
+

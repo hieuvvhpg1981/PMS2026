@@ -1,6 +1,6 @@
 import React, { useState } from 'react';
 import { ProjectData, MaintenanceScheduleItem } from '../../pms/T2_Services';
-import { formatDateVN, generateZipArchiveStructure } from '../../pms/T1_Utils';
+import { formatDateVN, generateZipArchiveStructure, formatStatusOrCodeVN, formatCurrencyInputMask, parseCurrencyInputMask } from '../../pms/T1_Utils';
 import {
   Archive,
   Download,
@@ -166,11 +166,11 @@ export default function TabProjectArchive({
       {/* NĐ 207/2026 Gate: Văn bản chấp thuận kết quả nghiệm thu của Cơ quan chuyên môn về XD */}
       <div className="bg-emerald-50/70 p-5 rounded-2xl border border-emerald-200 shadow-xs flex flex-col md:flex-row justify-between items-start md:items-center gap-4">
         <div className="space-y-1">
-          <div className="text-xs font-extrabold text-emerald-900 uppercase flex items-center gap-1.5">
+          <div className="text-sm font-bold text-emerald-900 flex items-center gap-1.5">
             <ShieldCheck className="w-4 h-4 text-emerald-600" />
-            CHỐT CHẶN NGHIỆM THU ĐƯA CÔNG TRÌNH VÀO KHAI THÁC SỬ DỤNG (ĐIỀU 24 NĐ 207/2026/NĐ-CP)
+            Chốt chặn nghiệm thu đưa công trình vào khai thác sử dụng (Điều 24 NĐ 207/2026/NĐ-CP)
           </div>
-          <p className="text-[11px] text-emerald-800">
+          <p className="text-xs text-emerald-800">
             Số Văn bản thông báo chấp thuận kết quả nghiệm thu của Hội đồng Kiểm tra Nhà nước / Cục Giám định / Sở Xây dựng:
           </p>
         </div>
@@ -180,14 +180,14 @@ export default function TabProjectArchive({
             value={stateNoticeNo}
             onChange={e => setStateNoticeNo(e.target.value)}
             placeholder="Nhập số VB chấp thuận nghiệm thu..."
-            className="flex-1 md:w-80 px-3 py-2 text-xs font-mono font-bold bg-white border border-emerald-300 rounded-xl text-emerald-900"
+            className="flex-1 md:w-80 px-3 py-2 text-xs font-mono tabular-nums font-bold bg-white border border-emerald-300 rounded-xl text-emerald-900"
           />
           <button
             type="button"
             onClick={handleSaveStateAcceptanceNotice}
-            className="px-4 py-2 bg-emerald-600 hover:bg-emerald-700 text-white text-xs font-bold rounded-xl transition-all shrink-0"
+            className="px-4 py-2 bg-emerald-600 hover:bg-emerald-700 text-white text-xs font-semibold rounded-xl transition-all shrink-0"
           >
-            Xác Nhận VB Nghiệm Thu
+            Xác nhận VB nghiệm thu
           </button>
         </div>
       </div>
@@ -199,9 +199,9 @@ export default function TabProjectArchive({
           <div className="flex justify-between items-start border-b border-slate-100 pb-3">
             <h3 className="text-base font-bold text-slate-900 flex items-center gap-2">
               <Archive className="w-5 h-5 text-indigo-600" />
-              DIGITAL HANDOVER ARCHIVER (ĐÓNG GÓI BÀN GIAO SỐ)
+              Đóng gói bàn giao số (Digital Handover Archiver)
             </h3>
-            <span className="bg-indigo-100 text-indigo-800 text-[10px] font-mono font-bold px-2.5 py-0.5 rounded-full">
+            <span className="bg-indigo-100 text-indigo-800 text-[10px] font-mono tabular-nums font-bold px-2.5 py-0.5 rounded-full">
               48.6 MB (.ZIP)
             </span>
           </div>
@@ -212,9 +212,9 @@ export default function TabProjectArchive({
 
           <button
             onClick={() => setShowZipModal(true)}
-            className="w-full py-2.5 bg-indigo-600 hover:bg-indigo-700 text-white font-bold text-xs rounded-xl transition-all shadow-md flex items-center justify-center gap-2"
+            className="w-full py-2.5 bg-indigo-600 hover:bg-indigo-700 text-white font-semibold text-xs rounded-xl transition-all shadow-sm flex items-center justify-center gap-2"
           >
-            <Download className="w-4 h-4" /> Xem Cấu Trúc & Tải Đóng Gói Lưu Trữ (.ZIP)
+            <Download className="w-4 h-4" /> Xem cấu trúc & tải đóng gói lưu trữ (.ZIP)
           </button>
         </div>
 
@@ -223,7 +223,7 @@ export default function TabProjectArchive({
           <div className="flex justify-between items-start border-b border-slate-100 pb-3">
             <h3 className="text-base font-bold text-slate-900 flex items-center gap-2">
               <Lock className="w-5 h-5 text-red-600" />
-              TẤT TOÁN KHO BẠC & KHÓA MÃ DỰ ÁN CSDL QUỐC GIA
+              Tất toán Kho bạc & khóa mã dự án CSDL quốc gia
             </h3>
             <span className="bg-emerald-100 text-emerald-800 text-[10px] font-mono font-bold px-2.5 py-0.5 rounded-full">
               SmartCA Safe
@@ -236,9 +236,9 @@ export default function TabProjectArchive({
 
           <button
             onClick={handleLockTreasury}
-            className="w-full py-2.5 bg-red-600 hover:bg-red-700 text-white font-bold text-xs rounded-xl transition-all shadow-md flex items-center justify-center gap-2"
+            className="w-full py-2.5 bg-red-600 hover:bg-red-700 text-white font-semibold text-xs rounded-xl transition-all shadow-sm flex items-center justify-center gap-2"
           >
-            <ShieldCheck className="w-4 h-4" /> Tất Toán Kho Bạc & Khóa Mã Dự Án
+            <ShieldCheck className="w-4 h-4" /> Tất toán Kho bạc & khóa mã dự án
           </button>
         </div>
       </div>
@@ -248,8 +248,8 @@ export default function TabProjectArchive({
         <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-3 border-b border-slate-100 pb-3">
           <div>
             <h3 className="text-base font-bold text-slate-900 flex items-center gap-2">
-              <CalendarCheck className="w-5 h-5 text-amber-600" />
-              QUY TRÌNH & KẾ HOẠCH BẢO TRÌ CÔNG TRÌNH ĐỊNH KỲ (NĐ 207/2026/NĐ-CP & TT 40/2026/TT-BXD)
+              <CalendarCheck className="w-5 h-5 text-indigo-600" />
+              Quy trình & kế hoạch bảo trì công trình định kỳ (NĐ 207/2026/NĐ-CP & TT 40/2026/TT-BXD)
             </h3>
             <p className="text-xs text-slate-500 mt-0.5">
               Tự động cảnh báo đếm ngược thời gian hết hạn bảo hành, kinh phí bảo trì dự kiến & đợt kiểm định kỹ thuật định kỳ
@@ -258,43 +258,43 @@ export default function TabProjectArchive({
 
           <button
             onClick={() => setShowAddMaintenanceModal(true)}
-            className="px-4 py-2 bg-amber-600 hover:bg-amber-700 text-white text-xs font-bold rounded-xl transition-all shadow-sm flex items-center gap-1.5"
+            className="px-4 py-2 bg-indigo-600 hover:bg-indigo-700 text-white text-xs font-semibold rounded-xl transition-all shadow-sm flex items-center gap-1.5"
           >
-            <Plus className="w-4 h-4" /> Thêm Hạng Mục Bảo Trì
+            <Plus className="w-4 h-4" /> Thêm hạng mục bảo trì
           </button>
         </div>
 
         <div className="overflow-x-auto rounded-xl border border-slate-200">
           <table className="w-full text-left text-xs border-collapse">
             <thead>
-              <tr className="bg-slate-100 border-b border-slate-200 text-slate-700 font-bold uppercase tracking-wider">
-                <th className="p-3.5 min-w-[260px]">Hạng Mục Bảo Trì / Kiểm Định</th>
-                <th className="p-3.5 min-w-[110px]">Chu Kỳ (Tháng)</th>
-                <th className="p-3.5 min-w-[130px]">Đợt Kiểm Tra Tới</th>
-                <th className="p-3.5 min-w-[140px] text-right">Kinh Phí Dự Kiến</th>
-                <th className="p-3.5 min-w-[200px]">Đơn Vị Thực Hiện</th>
-                <th className="p-3.5 min-w-[120px]">Trạng Thái</th>
-                <th className="p-3.5 text-center min-w-[130px]">Thao Tác</th>
+              <tr className="bg-slate-50 border-b border-slate-200 text-slate-700 font-semibold">
+                <th className="p-3.5 min-w-[260px]">Hạng mục bảo trì / Kiểm định</th>
+                <th className="p-3.5 min-w-[110px]">Chu kỳ (tháng)</th>
+                <th className="p-3.5 min-w-[130px]">Đợt kiểm tra tới</th>
+                <th className="p-3.5 min-w-[140px] text-right">Kinh phí dự kiến</th>
+                <th className="p-3.5 min-w-[200px]">Đơn vị thực hiện</th>
+                <th className="p-3.5 min-w-[120px]">Trạng thái</th>
+                <th className="p-3.5 text-center min-w-[130px]">Thao tác</th>
               </tr>
             </thead>
             <tbody className="divide-y divide-slate-200 bg-white">
               {maintenanceList.map(item => (
                 <tr key={item.SCHEDULE_ID} className="hover:bg-slate-50 transition-colors">
                   <td className="p-3.5 font-bold text-slate-900">{item.HANG_MUC_BAO_TRI}</td>
-                  <td className="p-3.5 font-mono text-slate-700 font-bold">{item.CHU_KY_THANG} tháng/lần</td>
-                  <td className="p-3.5 font-mono text-amber-700 font-bold">{formatDateVN(item.NGAY_BAO_TRI_NEXT)}</td>
-                  <td className="p-3.5 font-mono font-bold text-right text-blue-800">
+                  <td className="p-3.5 font-mono tabular-nums text-slate-700 font-bold">{item.CHU_KY_THANG} tháng/lần</td>
+                  <td className="p-3.5 font-mono tabular-nums text-amber-700 font-bold">{formatDateVN(item.NGAY_BAO_TRI_NEXT)}</td>
+                  <td className="p-3.5 font-mono tabular-nums font-bold text-right text-indigo-800">
                     {(item.ESTIMATED_MAINTENANCE_COST_VND || 450000000).toLocaleString('vi-VN')} đ
                   </td>
                   <td className="p-3.5 text-slate-600 font-medium">{item.DON_VI_THUC_HIEN}</td>
                   <td className="p-3.5">
                     {item.TRANG_THAI === 'ĐẾN_HẠN' || item.TRANG_THAI === 'QUÁ_HẠN' ? (
-                      <span className="inline-flex items-center gap-1 bg-red-100 text-red-800 text-[11px] font-bold px-2.5 py-1 rounded-full border border-red-200 animate-pulse">
-                        <AlertTriangle className="w-3.5 h-3.5 text-red-600" /> {item.TRANG_THAI}
+                      <span className="inline-flex items-center gap-1 bg-red-100 text-red-800 text-[11px] font-semibold px-2.5 py-1 rounded-full border border-red-200 animate-pulse">
+                        <AlertTriangle className="w-3.5 h-3.5 text-red-600" /> {formatStatusOrCodeVN(item.TRANG_THAI)}
                       </span>
                     ) : (
-                      <span className="inline-flex items-center gap-1 bg-emerald-100 text-emerald-800 text-[11px] font-bold px-2.5 py-1 rounded-full border border-emerald-200">
-                        <CheckCircle2 className="w-3.5 h-3.5 text-emerald-600" /> {item.TRANG_THAI}
+                      <span className="inline-flex items-center gap-1 bg-emerald-100 text-emerald-800 text-[11px] font-semibold px-2.5 py-1 rounded-full border border-emerald-200">
+                        <CheckCircle2 className="w-3.5 h-3.5 text-emerald-600" /> {formatStatusOrCodeVN(item.TRANG_THAI)}
                       </span>
                     )}
                   </td>
@@ -321,8 +321,8 @@ export default function TabProjectArchive({
 
               {maintenanceList.length === 0 && (
                 <tr>
-                  <td colSpan={6} className="text-center py-8 text-slate-400">
-                    Chưa có hạng mục bảo trì công trình nào. Bấm nút "Thêm Hạng Mục Bảo Trì" ở trên.
+                  <td colSpan={7} className="text-center py-8 text-slate-400">
+                    Chưa có hạng mục bảo trì công trình nào. Bấm nút "Thêm hạng mục bảo trì" ở trên.
                   </td>
                 </tr>
               )}
@@ -338,7 +338,7 @@ export default function TabProjectArchive({
             <div className="flex justify-between items-center border-b border-slate-100 pb-3">
               <h4 className="text-base font-bold text-slate-900 flex items-center gap-2">
                 <FolderTree className="w-5 h-5 text-indigo-600" />
-                CÂY THƯ MỤC LƯU TRỮ SỐ HÓA TOÀN BỘ DỰ ÁN (.ZIP)
+                Cây thư mục lưu trữ số hóa toàn bộ dự án (.ZIP)
               </h4>
               <button onClick={() => setShowZipModal(false)} className="text-slate-400 hover:text-slate-600 font-bold text-lg">✕</button>
             </div>
@@ -352,15 +352,15 @@ export default function TabProjectArchive({
             <div className="flex justify-end gap-2 pt-2 border-t border-slate-100">
               <button
                 onClick={() => setShowZipModal(false)}
-                className="px-4 py-2 bg-slate-100 hover:bg-slate-200 text-slate-700 font-bold rounded-xl"
+                className="px-4 py-2 bg-white border border-slate-300 hover:bg-slate-50 text-slate-700 font-semibold rounded-xl"
               >
                 Đóng
               </button>
               <button
                 onClick={handleDownloadZip}
-                className="px-5 py-2 bg-indigo-600 hover:bg-indigo-700 text-white font-bold rounded-xl shadow-sm flex items-center gap-1.5"
+                className="px-5 py-2 bg-indigo-600 hover:bg-indigo-700 text-white font-semibold rounded-xl shadow-sm flex items-center gap-1.5"
               >
-                <Download className="w-4 h-4" /> Tải Xuống Tệp Archive (.ZIP)
+                <Download className="w-4 h-4" /> Tải xuống tệp Archive (.ZIP)
               </button>
             </div>
           </div>
@@ -373,15 +373,15 @@ export default function TabProjectArchive({
           <div className="bg-white rounded-2xl border border-slate-200 shadow-2xl w-full max-w-lg p-6 space-y-4 text-xs">
             <div className="flex justify-between items-center border-b border-slate-100 pb-3">
               <h4 className="text-base font-bold text-slate-900 flex items-center gap-2">
-                <CalendarCheck className="w-5 h-5 text-amber-600" />
-                THÊM MỚI HẠNG MỤC BẢO TRÌ CÔNG TRÌNH ĐỊNH KỲ
+                <CalendarCheck className="w-5 h-5 text-indigo-600" />
+                Thêm mới hạng mục bảo trì công trình định kỳ
               </h4>
               <button onClick={() => setShowAddMaintenanceModal(false)} className="text-slate-400 hover:text-slate-600 font-bold text-lg">✕</button>
             </div>
 
             <form onSubmit={handleAddMaintenance} className="space-y-3">
               <div>
-                <label className="block font-bold text-slate-700 mb-1">TÊN HẠNG MỤC BẢO TRÌ / KIỂM ĐỊNH *</label>
+                <label className="block text-sm font-medium text-slate-700 mb-1">Tên hạng mục bảo trì / kiểm định *</label>
                 <input
                   type="text"
                   value={newHangMuc}
@@ -394,48 +394,60 @@ export default function TabProjectArchive({
 
               <div className="grid grid-cols-2 gap-3">
                 <div>
-                  <label className="block font-bold text-slate-700 mb-1">CHU KỲ BẢO TRÌ (THÁNG)</label>
+                  <label className="block text-sm font-medium text-slate-700 mb-1">Chu kỳ bảo trì (tháng)</label>
                   <input
                     type="number"
                     value={newChuKy}
                     onChange={e => setNewChuKy(Number(e.target.value) || 6)}
-                    className="w-full px-3 py-2 border border-slate-300 rounded-xl font-mono outline-none"
+                    className="w-full px-3 py-2 border border-slate-300 rounded-xl font-mono tabular-nums outline-none"
                   />
                 </div>
                 <div>
-                  <label className="block font-bold text-slate-700 mb-1">ĐỢT THỰC HIỆN TIẾP THEO</label>
+                  <label className="block text-sm font-medium text-slate-700 mb-1">Đợt thực hiện tiếp theo</label>
                   <input
                     type="date"
                     value={newNgay}
                     onChange={e => setNewNgay(e.target.value)}
-                    className="w-full px-3 py-2 border border-slate-300 rounded-xl font-mono outline-none"
+                    className="w-full px-3 py-2 border border-slate-300 rounded-xl font-mono tabular-nums outline-none"
                   />
                 </div>
               </div>
 
-              <div>
-                <label className="block font-bold text-slate-700 mb-1">ĐƠN VỊ THỰC HIỆN BẢO TRÌ</label>
-                <input
-                  type="text"
-                  value={newDonVi}
-                  onChange={e => setNewDonVi(e.target.value)}
-                  className="w-full px-3 py-2 border border-slate-300 rounded-xl outline-none"
-                />
+              <div className="grid grid-cols-2 gap-3">
+                <div>
+                  <label className="block text-sm font-medium text-slate-700 mb-1">Kinh phí dự kiến (VNĐ)</label>
+                  <input
+                    type="text"
+                    inputMode="numeric"
+                    value={formatCurrencyInputMask(newCostVnd)}
+                    onChange={e => setNewCostVnd(parseCurrencyInputMask(e.target.value))}
+                    className="w-full px-3 py-2 border border-slate-300 rounded-xl font-mono tabular-nums font-bold outline-none"
+                  />
+                </div>
+                <div>
+                  <label className="block text-sm font-medium text-slate-700 mb-1">Đơn vị thực hiện bảo trì</label>
+                  <input
+                    type="text"
+                    value={newDonVi}
+                    onChange={e => setNewDonVi(e.target.value)}
+                    className="w-full px-3 py-2 border border-slate-300 rounded-xl outline-none"
+                  />
+                </div>
               </div>
 
               <div className="pt-2 flex justify-end gap-2 border-t border-slate-100">
                 <button
                   type="button"
                   onClick={() => setShowAddMaintenanceModal(false)}
-                  className="px-4 py-2 bg-slate-100 hover:bg-slate-200 text-slate-700 font-bold rounded-xl"
+                  className="px-4 py-2 bg-white border border-slate-300 hover:bg-slate-50 text-slate-700 font-semibold rounded-xl"
                 >
                   Hủy
                 </button>
                 <button
                   type="submit"
-                  className="px-5 py-2 bg-amber-600 hover:bg-amber-700 text-white font-bold rounded-xl shadow-sm"
+                  className="px-5 py-2 bg-indigo-600 hover:bg-indigo-700 text-white font-semibold rounded-xl shadow-sm"
                 >
-                  Lưu Hạng Mục
+                  Lưu hạng mục
                 </button>
               </div>
             </form>

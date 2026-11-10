@@ -1,7 +1,7 @@
 import React, { useState, useMemo } from 'react';
 import { ProjectData } from '../../pms/T2_Services';
 import { PmsHandlers } from '../../pms/T3_Handlers';
-import { formatVND, safeNumber, validatePackageDisbursement, filterPaymentsByPackage } from '../../pms/T1_Utils';
+import { formatVND, safeNumber, validatePackageDisbursement, filterPaymentsByPackage, formatCurrencyInputMask, parseCurrencyInputMask, formatStatusOrCodeVN } from '../../pms/T1_Utils';
 import {
   DollarSign,
   ShieldAlert,
@@ -188,15 +188,15 @@ export default function TabPaymentEngine({
       {/* 📌 CONTEXT BADGE AT TOP OF TAB */}
       <div className="bg-white p-4 rounded-2xl border border-slate-200 shadow-sm flex flex-col sm:flex-row justify-between items-start sm:items-center gap-3">
         <div className="flex items-center gap-2 text-xs">
-          <Pin className="w-4 h-4 text-blue-600 shrink-0 animate-bounce" />
+          <Pin className="w-4 h-4 text-indigo-600 shrink-0" />
           <span className="text-slate-700 font-semibold">
-            📌 Đang quản lý thanh toán cho: <strong className="text-slate-900 font-extrabold">Dự án [{project.PROJECT_ID}] {project.TEN_DU_AN}</strong> ➔ <strong className="text-blue-700 font-extrabold">{selectedPackageName}</strong>
+            Đang quản lý thanh toán cho: <strong className="text-slate-900 font-extrabold">Dự án <span className="font-mono tabular-nums">[{project.PROJECT_ID}]</span> {project.TEN_DU_AN}</strong> ➔ <strong className="text-indigo-700 font-extrabold">{selectedPackageName}</strong>
           </span>
         </div>
 
         <div className="flex items-center gap-2">
-          <span className={`px-3 py-1 rounded-full text-xs font-extrabold ${currentDisbursement.isHardBlocked ? 'bg-red-100 text-red-800 border border-red-200' : 'bg-emerald-100 text-emerald-800 border border-emerald-200'}`}>
-            {currentDisbursement.isHardBlocked ? 'HARD-BLOCKED' : 'BÌNH THƯỜNG'}
+          <span className={`px-3 py-1 rounded-full text-xs font-semibold ${currentDisbursement.isHardBlocked ? 'bg-red-100 text-red-800 border border-red-200' : 'bg-emerald-100 text-emerald-800 border border-emerald-200'}`}>
+            {currentDisbursement.isHardBlocked ? 'Tạm khóa (Hard-blocked)' : 'Bình thường'}
           </span>
         </div>
       </div>
@@ -209,16 +209,16 @@ export default function TabPaymentEngine({
             <div className="flex justify-between items-center border-b border-slate-100 pb-3">
               <h3 className="text-base font-bold text-slate-900 flex items-center gap-2">
                 <DollarSign className="w-5 h-5 text-emerald-600" />
-                BẢNG THEO DÕI TẠM ỨNG & GIẢI NGÂN GÓI THẦU [{selectedPackageId}]
+                Bảng theo dõi tạm ứng & giải ngân gói thầu <span className="font-mono tabular-nums">[{selectedPackageId}]</span>
               </h3>
-              <span className="text-xs text-slate-500 font-mono">Căn cứ NĐ 206/2026 & TT 38/2026</span>
+              <span className="text-xs text-slate-500 font-mono tabular-nums">Căn cứ NĐ 206/2026 & TT 38/2026</span>
             </div>
 
             {/* Progress Bar Visualizing Disbursement */}
             <div className="space-y-1.5">
               <div className="flex justify-between text-xs font-bold">
-                <span className="text-slate-600">Tiến độ giải ngân thực tế Gói {selectedPackageId}</span>
-                <span className="font-mono text-emerald-700">{paidPct}% ({formatVND(currentDisbursement.cumulativePaid)} / {formatVND(currentDisbursement.contractValue)})</span>
+                <span className="text-slate-600">Tiến độ giải ngân thực tế gói {selectedPackageId}</span>
+                <span className="font-mono tabular-nums text-emerald-700">{paidPct}% ({formatVND(currentDisbursement.cumulativePaid)} / {formatVND(currentDisbursement.contractValue)})</span>
               </div>
               <div className="w-full bg-slate-100 rounded-full h-3.5 overflow-hidden border border-slate-200 flex">
                 <div className="bg-emerald-600 h-full transition-all duration-500 rounded-full" style={{ width: `${paidPct}%` }}></div>
@@ -227,20 +227,20 @@ export default function TabPaymentEngine({
 
             <div className="grid grid-cols-1 sm:grid-cols-4 gap-4 text-xs font-medium pt-2">
               <div className="p-3.5 bg-slate-50 rounded-xl border border-slate-200 space-y-1">
-                <div className="text-slate-500 font-bold">Giá Trị Hợp Đồng Gói</div>
-                <div className="font-mono text-base font-extrabold text-blue-900">{formatVND(currentDisbursement.contractValue)}</div>
+                <div className="text-slate-500 font-semibold">Giá trị hợp đồng gói</div>
+                <div className="font-mono tabular-nums text-base font-extrabold text-indigo-950">{formatVND(currentDisbursement.contractValue)}</div>
               </div>
               <div className="p-3.5 bg-slate-50 rounded-xl border border-slate-200 space-y-1">
-                <div className="text-slate-500 font-bold">Lũy Kế Tạm Ứng</div>
-                <div className="font-mono text-base font-extrabold text-purple-700">{formatVND(currentDisbursement.advanceAmount)}</div>
+                <div className="text-slate-500 font-semibold">Lũy kế tạm ứng</div>
+                <div className="font-mono tabular-nums text-base font-extrabold text-purple-700">{formatVND(currentDisbursement.advanceAmount)}</div>
               </div>
               <div className="p-3.5 bg-emerald-50 rounded-xl border border-emerald-200 space-y-1">
-                <div className="text-emerald-800 font-bold">Lũy Kế Thanh Toán KLHT</div>
-                <div className="font-mono text-base font-extrabold text-emerald-700">{formatVND(currentDisbursement.cumulativePaid)}</div>
+                <div className="text-emerald-800 font-semibold">Lũy kế thanh toán KLHT</div>
+                <div className="font-mono tabular-nums text-base font-extrabold text-emerald-700">{formatVND(currentDisbursement.cumulativePaid)}</div>
               </div>
               <div className="p-3.5 bg-slate-50 rounded-xl border border-slate-200 space-y-1">
-                <div className="text-slate-500 font-bold">Giá Trị Còn Lại (Hạn Mức)</div>
-                <div className="font-mono text-base font-extrabold text-slate-900">{formatVND(currentDisbursement.remainingLimit)}</div>
+                <div className="text-slate-500 font-semibold">Giá trị còn lại (Hạn mức)</div>
+                <div className="font-mono tabular-nums text-base font-extrabold text-slate-900">{formatVND(currentDisbursement.remainingLimit)}</div>
               </div>
             </div>
           </div>
@@ -248,15 +248,15 @@ export default function TabPaymentEngine({
           {/* HARD BLOCK GUARDRAIL ALERT & FORM */}
           <div className="bg-white p-6 rounded-2xl border border-slate-200 shadow-sm space-y-4">
             <h3 className="text-base font-bold text-slate-900 flex items-center gap-2 border-b border-slate-100 pb-3">
-              <FileText className="w-5 h-5 text-blue-600" />
-              TẠO HỒ SƠ ĐỀ NGHỊ THANH TOÁN KHO BẠC MỚI (MẪU 01A / 03B) - GÓI [{selectedPackageId}]
+              <FileText className="w-5 h-5 text-indigo-600" />
+              Tạo hồ sơ đề nghị thanh toán Kho bạc mới (Mẫu 01a / 03b) - Gói <span className="font-mono tabular-nums">[{selectedPackageId}]</span>
             </h3>
 
             {!hardBlockCheck.allowed && (
               <div className="bg-red-50 border-2 border-red-200 p-4 rounded-xl text-red-900 text-xs font-bold flex items-center gap-3 animate-pulse">
                 <ShieldAlert className="w-6 h-6 text-red-600 shrink-0" />
                 <div>
-                  <div className="text-sm font-extrabold text-red-800">🚫 HARD BLOCK GÓI THẦU [{selectedPackageId}]: ĐỀ NGHỊ GIẢI NGÂN VƯỢT HẠN MỨC!</div>
+                  <div className="text-sm font-extrabold text-red-800">🚫 Hard block gói thầu [{selectedPackageId}]: Đề nghị giải ngân vượt hạn mức!</div>
                   <div>{hardBlockCheck.message}</div>
                 </div>
               </div>
@@ -265,11 +265,11 @@ export default function TabPaymentEngine({
             <form onSubmit={handleRequestDisbursement} className="bg-slate-50 p-4 rounded-xl border border-slate-200 space-y-4 text-xs">
               <div className="grid grid-cols-1 sm:grid-cols-3 gap-4">
                 <div>
-                  <label className="block font-bold text-slate-700 mb-1">Mẫu Hồ Sơ Gửi Kho Bạc</label>
+                  <label className="block text-sm font-medium text-slate-700 mb-1">Mẫu hồ sơ gửi Kho bạc</label>
                   <select
                     value={paymentDocType}
                     onChange={e => setPaymentDocType(e.target.value as any)}
-                    className="w-full px-3 py-2 border border-slate-300 rounded-xl bg-white outline-none font-semibold"
+                    className="w-full px-3 py-2 border border-slate-300 rounded-xl bg-white outline-none font-semibold text-sm"
                   >
                     <option value="MAU_03B">Mẫu 03b - Khối lượng hoàn thành thanh toán</option>
                     <option value="MAU_01A">Mẫu 01a - Bảng xác định giá trị khối lượng công việc</option>
@@ -277,22 +277,23 @@ export default function TabPaymentEngine({
                 </div>
 
                 <div>
-                  <label className="block font-bold text-slate-700 mb-1">Số Tiền Đề Nghị Giải Ngân (VND)</label>
+                  <label className="block text-sm font-medium text-slate-700 mb-1">Số tiền đề nghị giải ngân (VNĐ)</label>
                   <input
-                    type="number"
-                    value={disbursementReqAmount}
-                    onChange={e => setDisbursementReqAmount(Number(e.target.value) || 0)}
-                    className="w-full px-3 py-2 border border-slate-300 rounded-xl bg-white font-mono font-extrabold text-blue-900 outline-none focus:ring-2 focus:ring-blue-500"
+                    type="text"
+                    inputMode="numeric"
+                    value={formatCurrencyInputMask(disbursementReqAmount)}
+                    onChange={e => setDisbursementReqAmount(parseCurrencyInputMask(e.target.value))}
+                    className="w-full px-3 py-2 border border-slate-300 rounded-xl bg-white font-mono tabular-nums font-extrabold text-indigo-950 outline-none focus:ring-2 focus:ring-indigo-500 text-sm"
                   />
                 </div>
 
                 <div>
-                  <label className="block font-bold text-slate-700 mb-1">Ghi Chú Đợt Thanh Toán</label>
+                  <label className="block text-sm font-medium text-slate-700 mb-1">Ghi chú đợt thanh toán</label>
                   <input
                     type="text"
                     value={paymentNote}
                     onChange={e => setPaymentNote(e.target.value)}
-                    className="w-full px-3 py-2 border border-slate-300 rounded-xl bg-white outline-none"
+                    className="w-full px-3 py-2 border border-slate-300 rounded-xl bg-white outline-none text-sm"
                   />
                 </div>
               </div>
@@ -301,9 +302,9 @@ export default function TabPaymentEngine({
                 <button
                   type="submit"
                   disabled={!hardBlockCheck.allowed}
-                  className="bg-emerald-600 hover:bg-emerald-700 text-white font-bold text-xs px-6 py-2.5 rounded-xl transition-all shadow-md flex items-center gap-2 disabled:opacity-40"
+                  className="bg-indigo-600 hover:bg-indigo-700 text-white font-semibold text-xs px-6 py-2.5 rounded-xl transition-all shadow-sm flex items-center gap-2 disabled:opacity-40"
                 >
-                  <CheckCircle2 className="w-4 h-4" /> Ký Số SmartCA & Gửi Kho Bạc Nhà Nước
+                  <CheckCircle2 className="w-4 h-4" /> Ký số SmartCA & gửi Kho bạc Nhà nước
                 </button>
               </div>
             </form>
@@ -312,39 +313,39 @@ export default function TabPaymentEngine({
           {/* PAYMENT HISTORY TABLE FOR SINGLE PACKAGE */}
           <div className="bg-white p-6 rounded-2xl border border-slate-200 shadow-sm space-y-4">
             <h3 className="text-base font-bold text-slate-900 border-b border-slate-100 pb-3 flex justify-between items-center">
-              <span>LỊCH SỬ HỒ SƠ GIẢI NGÂN ĐÃ THỰC HIỆN - GÓI [{selectedPackageId}]</span>
-              <span className="text-xs bg-slate-100 text-slate-700 px-3 py-1 rounded-full font-bold">
-                {filteredPayments.length} Đợt thanh toán
+              <span>Lịch sử hồ sơ giải ngân đã thực hiện - Gói <span className="font-mono tabular-nums">[{selectedPackageId}]</span></span>
+              <span className="text-xs bg-slate-100 text-slate-700 px-3 py-1 rounded-full font-semibold tabular-nums">
+                {filteredPayments.length} đợt thanh toán
               </span>
             </h3>
 
             <div className="overflow-x-auto border border-slate-200 rounded-xl">
               <table className="w-full text-xs text-left text-slate-600 border-collapse">
-                <thead className="bg-slate-100 text-slate-700 uppercase font-bold border-b border-slate-200">
+                <thead className="bg-slate-50 text-slate-700 font-semibold border-b border-slate-200">
                   <tr>
-                    <th className="px-3.5 py-3">Mã Hồ Sơ</th>
-                    <th className="px-3.5 py-3 font-mono">Đợt Thanh Toán</th>
-                    <th className="px-3.5 py-3 font-mono text-right">Giá Trị Đề Nghị (VND)</th>
-                    <th className="px-3.5 py-3 font-mono text-right">Lũy Kế Đã Trình (VND)</th>
-                    <th className="px-3.5 py-3 font-mono">Ngày Trình</th>
-                    <th className="px-3.5 py-3 text-center">Xác Thực SmartCA</th>
-                    <th className="px-3.5 py-3 text-center">Trạng Thái</th>
+                    <th className="px-3.5 py-3">Mã hồ sơ</th>
+                    <th className="px-3.5 py-3 text-center">Đợt thanh toán</th>
+                    <th className="px-3.5 py-3 text-right">Giá trị đề nghị (VNĐ)</th>
+                    <th className="px-3.5 py-3 text-right">Lũy kế đã trình (VNĐ)</th>
+                    <th className="px-3.5 py-3">Ngày trình</th>
+                    <th className="px-3.5 py-3 text-center">Xác thực SmartCA</th>
+                    <th className="px-3.5 py-3 text-center">Trạng thái</th>
                   </tr>
                 </thead>
                 <tbody className="divide-y divide-slate-200 font-medium bg-white">
                   {filteredPayments.map(pay => (
                     <tr key={pay.PAYMENT_ID} className="hover:bg-slate-50 transition-colors">
-                      <td className="px-3.5 py-3 font-mono font-bold text-blue-700">{pay.PAYMENT_ID}</td>
-                      <td className="px-3.5 py-3 font-bold text-center font-mono">Đợt {pay.DOT_THANH_TOAN}</td>
-                      <td className="px-3.5 py-3 text-right font-mono font-bold text-slate-900">{formatVND(pay.GIA_TRI_DE_NGHI)}</td>
-                      <td className="px-3.5 py-3 text-right font-mono font-bold text-emerald-700">{formatVND(pay.KHOI_LUONG_LUY_KE_TRINH)}</td>
-                      <td className="px-3.5 py-3 font-mono">{pay.NGAY_DE_NGHI}</td>
-                      <td className="px-3.5 py-3 text-center font-mono text-[10px] text-blue-700 bg-blue-50 font-bold rounded">
+                      <td className="px-3.5 py-3 font-mono tabular-nums font-bold text-indigo-700">{pay.PAYMENT_ID}</td>
+                      <td className="px-3.5 py-3 font-bold text-center font-mono tabular-nums">Đợt {pay.DOT_THANH_TOAN}</td>
+                      <td className="px-3.5 py-3 text-right font-mono tabular-nums font-bold text-slate-900">{formatVND(pay.GIA_TRI_DE_NGHI)}</td>
+                      <td className="px-3.5 py-3 text-right font-mono tabular-nums font-bold text-emerald-700">{formatVND(pay.KHOI_LUONG_LUY_KE_TRINH)}</td>
+                      <td className="px-3.5 py-3 font-mono tabular-nums">{pay.NGAY_DE_NGHI}</td>
+                      <td className="px-3.5 py-3 text-center font-mono tabular-nums text-[11px] text-indigo-700 bg-indigo-50 font-semibold rounded">
                         {pay.SMART_CA_SIGNATURE || 'SmartCA Signed'}
                       </td>
                       <td className="px-3.5 py-3 text-center">
-                        <span className="bg-emerald-100 text-emerald-800 font-bold px-2.5 py-1 rounded-full text-[10px]">
-                          {pay.TRANG_THAI}
+                        <span className="bg-emerald-100 text-emerald-800 font-semibold px-2.5 py-1 rounded-full text-[11px]">
+                          {formatStatusOrCodeVN(pay.TRANG_THAI)}
                         </span>
                       </td>
                     </tr>
@@ -353,7 +354,7 @@ export default function TabPaymentEngine({
                   {filteredPayments.length === 0 && (
                     <tr>
                       <td colSpan={7} className="text-center py-6 text-slate-400">
-                        Chưa có lịch sử giải ngân nào cho Gói thầu {selectedPackageId}.
+                        Chưa có lịch sử giải ngân nào cho gói thầu {selectedPackageId}.
                       </td>
                     </tr>
                   )}
@@ -372,17 +373,17 @@ export default function TabPaymentEngine({
             <div className="flex justify-between items-center border-b border-slate-100 pb-3">
               <h3 className="text-base font-bold text-slate-900 flex items-center gap-2">
                 <TrendingUp className="w-5 h-5 text-emerald-600" />
-                TỔNG HỢP GIẢI NGÂN TOÀN BỘ CÁC GÓI THẦU - DỰ ÁN [{project.PROJECT_ID}]
+                Tổng hợp giải ngân toàn bộ các gói thầu - Dự án <span className="font-mono tabular-nums">[{project.PROJECT_ID}]</span>
               </h3>
-              <span className="text-xs bg-blue-100 text-blue-800 font-bold px-3 py-1 rounded-full border border-blue-200">
-                {summaryPackages.length} Gói thầu
+              <span className="text-xs bg-indigo-50 text-indigo-800 font-semibold px-3 py-1 rounded-full border border-indigo-200 tabular-nums">
+                {summaryPackages.length} gói thầu
               </span>
             </div>
 
             <div className="space-y-1.5">
               <div className="flex justify-between text-xs font-bold">
                 <span className="text-slate-600">Tỷ lệ giải ngân tổng hợp toàn bộ gói thầu</span>
-                <span className="font-mono text-emerald-700">{totalProjectSummary.disbursementPct}% ({formatVND(totalProjectSummary.totalPaid)} / {formatVND(totalProjectSummary.totalContractValue)})</span>
+                <span className="font-mono tabular-nums text-emerald-700">{totalProjectSummary.disbursementPct}% ({formatVND(totalProjectSummary.totalPaid)} / {formatVND(totalProjectSummary.totalContractValue)})</span>
               </div>
               <div className="w-full bg-slate-100 rounded-full h-3.5 overflow-hidden border border-slate-200 flex">
                 <div className="bg-emerald-600 h-full transition-all duration-500 rounded-full" style={{ width: `${totalProjectSummary.disbursementPct}%` }}></div>
@@ -391,20 +392,20 @@ export default function TabPaymentEngine({
 
             <div className="grid grid-cols-1 sm:grid-cols-4 gap-4 text-xs font-medium pt-2">
               <div className="p-3.5 bg-slate-50 rounded-xl border border-slate-200 space-y-1">
-                <div className="text-slate-500 font-bold">Tổng Giá Trị HĐ Các Gói</div>
-                <div className="font-mono text-base font-extrabold text-blue-900">{formatVND(totalProjectSummary.totalContractValue)}</div>
+                <div className="text-slate-500 font-semibold">Tổng giá trị HĐ các gói</div>
+                <div className="font-mono tabular-nums text-base font-extrabold text-indigo-950">{formatVND(totalProjectSummary.totalContractValue)}</div>
               </div>
               <div className="p-3.5 bg-slate-50 rounded-xl border border-slate-200 space-y-1">
-                <div className="text-slate-500 font-bold">Tổng Lũy Kế Tạm Ứng</div>
-                <div className="font-mono text-base font-extrabold text-purple-700">{formatVND(totalProjectSummary.totalAdvance)}</div>
+                <div className="text-slate-500 font-semibold">Tổng lũy kế tạm ứng</div>
+                <div className="font-mono tabular-nums text-base font-extrabold text-purple-700">{formatVND(totalProjectSummary.totalAdvance)}</div>
               </div>
               <div className="p-3.5 bg-emerald-50 rounded-xl border border-emerald-200 space-y-1">
-                <div className="text-emerald-800 font-bold">Tổng Lũy Kế Giải Ngân</div>
-                <div className="font-mono text-base font-extrabold text-emerald-700">{formatVND(totalProjectSummary.totalPaid)}</div>
+                <div className="text-emerald-800 font-semibold">Tổng lũy kế giải ngân</div>
+                <div className="font-mono tabular-nums text-base font-extrabold text-emerald-700">{formatVND(totalProjectSummary.totalPaid)}</div>
               </div>
               <div className="p-3.5 bg-slate-50 rounded-xl border border-slate-200 space-y-1">
-                <div className="text-slate-500 font-bold">Tổng Hạn Mức Còn Lại</div>
-                <div className="font-mono text-base font-extrabold text-slate-900">{formatVND(totalProjectSummary.totalRemaining)}</div>
+                <div className="text-slate-500 font-semibold">Tổng hạn mức còn lại</div>
+                <div className="font-mono tabular-nums text-base font-extrabold text-slate-900">{formatVND(totalProjectSummary.totalRemaining)}</div>
               </div>
             </div>
           </div>
@@ -413,38 +414,38 @@ export default function TabPaymentEngine({
           <div className="bg-white p-6 rounded-2xl border border-slate-200 shadow-sm space-y-4">
             <h3 className="text-base font-bold text-slate-900 border-b border-slate-100 pb-3 flex justify-between items-center">
               <span className="flex items-center gap-2">
-                <Receipt className="w-5 h-5 text-blue-600" /> BẢNG TỔNG HỢP THANH TOÁN CÁC GÓI THẦU THUỘC DỰ ÁN
+                <Receipt className="w-5 h-5 text-indigo-600" /> Bảng tổng hợp thanh toán các gói thầu thuộc dự án
               </span>
             </h3>
 
             <div className="overflow-x-auto border border-slate-200 rounded-xl">
               <table className="w-full text-xs text-left text-slate-600 border-collapse">
-                <thead className="bg-slate-100 text-slate-700 uppercase font-bold border-b border-slate-200">
+                <thead className="bg-slate-50 text-slate-700 font-semibold border-b border-slate-200">
                   <tr>
-                    <th className="px-3.5 py-3 min-w-[100px]">Mã Gói</th>
-                    <th className="px-3.5 py-3 min-w-[260px]">Tên Gói Thầu & Nhà Thầu</th>
-                    <th className="px-3.5 py-3 text-right min-w-[140px]">Giá Trị HĐ (VND)</th>
-                    <th className="px-3.5 py-3 text-right min-w-[130px]">Lũy Kế Tạm Ứng</th>
-                    <th className="px-3.5 py-3 text-right min-w-[140px]">Lũy Kế Thanh Toán</th>
-                    <th className="px-3.5 py-3 text-right min-w-[130px]">Giá Trị Còn Lại</th>
-                    <th className="px-3.5 py-3 text-center min-w-[110px]">Giải Ngân (%)</th>
-                    <th className="px-3.5 py-3 text-center min-w-[110px]">Thao Tác</th>
+                    <th className="px-3.5 py-3 min-w-[100px]">Mã gói</th>
+                    <th className="px-3.5 py-3 min-w-[260px]">Tên gói thầu & nhà thầu</th>
+                    <th className="px-3.5 py-3 text-right min-w-[140px]">Giá trị HĐ (VNĐ)</th>
+                    <th className="px-3.5 py-3 text-right min-w-[130px]">Lũy kế tạm ứng</th>
+                    <th className="px-3.5 py-3 text-right min-w-[140px]">Lũy kế thanh toán</th>
+                    <th className="px-3.5 py-3 text-right min-w-[130px]">Giá trị còn lại</th>
+                    <th className="px-3.5 py-3 text-center min-w-[110px]">Giải ngân (%)</th>
+                    <th className="px-3.5 py-3 text-center min-w-[110px]">Thao tác</th>
                   </tr>
                 </thead>
                 <tbody className="divide-y divide-slate-200 font-medium bg-white">
                   {summaryPackages.map(pkg => (
                     <tr key={pkg.packageId} className="hover:bg-slate-50 transition-colors">
-                      <td className="px-3.5 py-3 font-mono font-bold text-blue-900">{pkg.packageId}</td>
+                      <td className="px-3.5 py-3 font-mono tabular-nums font-bold text-indigo-950">{pkg.packageId}</td>
                       <td className="px-3.5 py-3">
-                        <div className="font-bold text-slate-900">{pkg.packageName}</div>
+                        <div className="font-semibold text-slate-900">{pkg.packageName}</div>
                         <div className="text-[11px] text-slate-500">Nhà thầu: {pkg.contractor}</div>
                       </td>
-                      <td className="px-3.5 py-3 text-right font-mono font-bold text-slate-900">{formatVND(pkg.contractValue)}</td>
-                      <td className="px-3.5 py-3 text-right font-mono text-purple-700">{formatVND(pkg.advanceAmount)}</td>
-                      <td className="px-3.5 py-3 text-right font-mono font-bold text-emerald-700">{formatVND(pkg.cumulativePaid)}</td>
-                      <td className="px-3.5 py-3 text-right font-mono text-slate-700">{formatVND(pkg.remainingLimit)}</td>
+                      <td className="px-3.5 py-3 text-right font-mono tabular-nums font-bold text-slate-900">{formatVND(pkg.contractValue)}</td>
+                      <td className="px-3.5 py-3 text-right font-mono tabular-nums text-purple-700">{formatVND(pkg.advanceAmount)}</td>
+                      <td className="px-3.5 py-3 text-right font-mono tabular-nums font-bold text-emerald-700">{formatVND(pkg.cumulativePaid)}</td>
+                      <td className="px-3.5 py-3 text-right font-mono tabular-nums text-slate-700">{formatVND(pkg.remainingLimit)}</td>
                       <td className="px-3.5 py-3 text-center">
-                        <span className="bg-emerald-100 text-emerald-900 font-mono font-extrabold px-2.5 py-1 rounded-full text-[11px]">
+                        <span className="bg-emerald-100 text-emerald-900 font-mono tabular-nums font-extrabold px-2.5 py-1 rounded-full text-[11px]">
                           {pkg.disbursementPct}%
                         </span>
                       </td>
@@ -452,9 +453,9 @@ export default function TabPaymentEngine({
                         {onSelectPackage && (
                           <button
                             onClick={() => onSelectPackage(pkg.packageId)}
-                            className="px-3 py-1.5 bg-blue-50 text-blue-700 border border-blue-200 rounded-lg hover:bg-blue-600 hover:text-white transition-all text-xs font-semibold shadow-2xs"
+                            className="px-3 py-1.5 bg-white text-slate-700 border border-slate-300 rounded-lg hover:bg-slate-50 transition-all text-xs font-medium shadow-2xs"
                           >
-                            <Eye className="w-3.5 h-3.5 inline mr-1" /> Chi Tiết
+                            <Eye className="w-3.5 h-3.5 inline mr-1" /> Chi tiết
                           </button>
                         )}
                       </td>

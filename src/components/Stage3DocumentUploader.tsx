@@ -83,15 +83,15 @@ export default function Stage3DocumentUploader({
       <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-2 border-b border-slate-100 pb-3">
         <div>
           <h3 className="text-base font-bold text-slate-900 flex items-center gap-2">
-            <FolderArchive className="w-5 h-5 text-blue-600" />
-            HỒ SƠ TÀI LIỆU ĐÍNH KÈM GIAI ĐOẠN 3: {stepName.toUpperCase()}
+            <FolderArchive className="w-5 h-5 text-indigo-600" />
+            Hồ sơ tài liệu đính kèm Giai đoạn 3: {stepName}
           </h3>
           <p className="text-xs text-slate-500">Lưu trữ tự động thư mục chuẩn: /PMS_Storage/{projectId}/Giai_Doan_3/</p>
         </div>
         <div className="flex items-center gap-2">
           <span className="text-xs font-semibold text-slate-600">Đã nộp:</span>
-          <span className="font-mono text-xs font-bold text-blue-700 bg-blue-50 px-2.5 py-1 rounded-lg border border-blue-200">
-            {stepDocs.length} / {requiredDocs.length} Tài liệu
+          <span className="font-mono tabular-nums text-xs font-bold text-indigo-700 bg-indigo-50 px-2.5 py-1 rounded-lg border border-indigo-200">
+            {stepDocs.length} / {requiredDocs.length} tài liệu
           </span>
         </div>
       </div>
@@ -123,7 +123,7 @@ export default function Stage3DocumentUploader({
                     {req.isMandatory && <span className="text-red-500 font-bold">*</span>}
                   </div>
                   {uploaded ? (
-                    <div className="text-[11px] text-emerald-700 font-mono truncate">
+                    <div className="text-[11px] text-emerald-700 font-mono tabular-nums truncate">
                       File: {uploaded.fileName} ({uploaded.fileSizeMB} MB)
                     </div>
                   ) : (
@@ -144,13 +144,13 @@ export default function Stage3DocumentUploader({
 
       {/* Document Upload Form */}
       <form onSubmit={handleUpload} className="bg-slate-50 p-4 rounded-xl border border-slate-200 space-y-4">
-        <div className="text-xs font-bold text-slate-800 uppercase flex items-center gap-1.5">
-          <Upload className="w-4 h-4 text-blue-600" /> ĐĂNG TẢI HỒ SƠ ĐÍNH KÈM (PDF / DOCX / XLSX / ZIP UP TO 100MB)
+        <div className="text-sm font-bold text-slate-800 flex items-center gap-1.5">
+          <Upload className="w-4 h-4 text-indigo-600" /> Đăng tải hồ sơ đính kèm (PDF / DOCX / XLSX / ZIP ≤ 100MB)
         </div>
 
         <div className="grid grid-cols-1 sm:grid-cols-3 gap-3 text-xs">
           <div>
-            <label className="block font-semibold text-slate-700 mb-1">Loại Văn Bản Trình Duyệt</label>
+            <label className="block text-sm font-medium text-slate-700 mb-1">Loại văn bản trình duyệt</label>
             <select
               value={selectedDocTypeId}
               onChange={e => setSelectedDocTypeId(e.target.value)}
@@ -165,7 +165,7 @@ export default function Stage3DocumentUploader({
           </div>
 
           <div>
-            <label className="block font-semibold text-slate-700 mb-1">Người Nộp / Cán Bộ Phụ Trách</label>
+            <label className="block text-sm font-medium text-slate-700 mb-1">Người nộp / Cán bộ phụ trách</label>
             <input
               type="text"
               value={uploaderName}
@@ -175,7 +175,7 @@ export default function Stage3DocumentUploader({
           </div>
 
           <div>
-            <label className="block font-semibold text-slate-700 mb-1">Chọn Tệp Đính Kèm</label>
+            <label className="block text-sm font-medium text-slate-700 mb-1">Chọn tệp đính kèm</label>
             <input
               type="file"
               accept=".pdf,.docx,.xlsx,.zip"
@@ -187,16 +187,16 @@ export default function Stage3DocumentUploader({
 
         <div className="flex flex-col sm:flex-row justify-between items-center gap-3 pt-2">
           <div className="text-[11px] text-slate-500 flex items-center gap-1">
-            <ShieldCheck className="w-3.5 h-3.5 text-emerald-600" /> Tự động đóng dấu Ký số SmartCA khi nộp hồ sơ thành công
+            <ShieldCheck className="w-3.5 h-3.5 text-emerald-600" /> Tự động đóng dấu ký số SmartCA khi nộp hồ sơ thành công
           </div>
 
           <button
             type="submit"
             disabled={isUploading || !file}
-            className="bg-blue-600 hover:bg-blue-700 text-white font-bold text-xs px-5 py-2 rounded-xl transition-all shadow-sm flex items-center gap-1.5 disabled:opacity-40"
+            className="bg-indigo-600 hover:bg-indigo-700 text-white font-semibold text-xs px-5 py-2 rounded-xl transition-all shadow-sm flex items-center gap-1.5 disabled:opacity-40"
           >
             {isUploading ? <FileCheck2 className="w-4 h-4 animate-spin" /> : <Upload className="w-4 h-4" />}
-            Xác Nhận Đăng Tải Hồ Sơ
+            Xác nhận đăng tải hồ sơ
           </button>
         </div>
       </form>
@@ -204,16 +204,16 @@ export default function Stage3DocumentUploader({
       {/* Uploaded Documents List */}
       {stepDocs.length > 0 && (
         <div className="space-y-2 pt-2">
-          <div className="text-xs font-bold text-slate-700">DANH SÁCH TỆP ĐÃ LƯU TRỮ HỆ THỐNG</div>
+          <div className="text-xs font-bold text-slate-700">Danh sách tệp đã lưu trữ hệ thống</div>
           <div className="space-y-2">
             {stepDocs.map(doc => (
               <div key={doc.docId} className="p-3 bg-slate-50 rounded-xl border border-slate-200 flex items-center justify-between text-xs">
                 <div className="flex items-center gap-3">
-                  <FileText className="w-4 h-4 text-blue-600" />
+                  <FileText className="w-4 h-4 text-indigo-600" />
                   <div>
                     <div className="font-bold text-slate-900">{doc.docTypeName}</div>
-                    <div className="text-[11px] text-slate-500 font-mono">
-                      {doc.fileName} | Path: <span className="text-blue-700">{doc.storagePath}</span> | {doc.uploadTimestamp.substring(0, 10)}
+                    <div className="text-[11px] text-slate-500 font-mono tabular-nums">
+                      {doc.fileName} | Path: <span className="text-indigo-700">{doc.storagePath}</span> | {doc.uploadTimestamp.substring(0, 10)}
                     </div>
                   </div>
                 </div>

@@ -60,57 +60,57 @@ export default function Stage4ExecutionView({
   return (
     <div className="space-y-6">
       {/* 4 TASK-BASED TABS NAVIGATION BAR */}
-      <div className="bg-white p-2 rounded-2xl border border-slate-200 shadow-sm grid grid-cols-2 md:grid-cols-4 gap-2">
+      <div className="bg-white p-1.5 rounded-2xl border border-slate-200 shadow-sm grid grid-cols-2 md:grid-cols-4 gap-1.5">
         <button
           onClick={() => setActiveTab('CONTRACT')}
           className={cn(
-            "flex items-center justify-center gap-2 px-4 py-3 rounded-xl font-bold text-xs transition-all",
+            "flex items-center justify-center gap-2 px-4 py-2.5 rounded-xl font-medium text-sm transition-all",
             activeTab === 'CONTRACT'
-              ? "bg-blue-600 text-white shadow-md shadow-blue-500/20"
-              : "text-slate-600 hover:bg-slate-100 hover:text-slate-900"
+              ? "bg-indigo-50 text-indigo-700 border-b-2 border-indigo-600 font-semibold"
+              : "text-slate-700 hover:bg-slate-50"
           )}
         >
           <FileText className="w-4 h-4" />
-          <span>1. Dự Án & Hợp Đồng</span>
+          <span>1. Dự án & hợp đồng</span>
         </button>
 
         <button
           onClick={() => setActiveTab('PAYMENT')}
           className={cn(
-            "flex items-center justify-center gap-2 px-4 py-3 rounded-xl font-bold text-xs transition-all",
+            "flex items-center justify-center gap-2 px-4 py-2.5 rounded-xl font-medium text-sm transition-all",
             activeTab === 'PAYMENT'
-              ? "bg-emerald-600 text-white shadow-md shadow-emerald-500/20"
-              : "text-slate-600 hover:bg-slate-100 hover:text-slate-900"
+              ? "bg-indigo-50 text-indigo-700 border-b-2 border-indigo-600 font-semibold"
+              : "text-slate-700 hover:bg-slate-50"
           )}
         >
           <DollarSign className="w-4 h-4" />
-          <span>2. Tạm Ứng & Thanh Toán</span>
+          <span>2. Tạm ứng & thanh toán</span>
         </button>
 
         <button
           onClick={() => setActiveTab('SCHEDULE')}
           className={cn(
-            "flex items-center justify-center gap-2 px-4 py-3 rounded-xl font-bold text-xs transition-all",
+            "flex items-center justify-center gap-2 px-4 py-2.5 rounded-xl font-medium text-sm transition-all",
             activeTab === 'SCHEDULE'
-              ? "bg-purple-600 text-white shadow-md shadow-purple-500/20"
-              : "text-slate-600 hover:bg-slate-100 hover:text-slate-900"
+              ? "bg-indigo-50 text-indigo-700 border-b-2 border-indigo-600 font-semibold"
+              : "text-slate-700 hover:bg-slate-50"
           )}
         >
           <Clock className="w-4 h-4" />
-          <span>3. Tiến Độ & Gantt</span>
+          <span>3. Tiến độ & Gantt</span>
         </button>
 
         <button
           onClick={() => setActiveTab('LOGBOOK')}
           className={cn(
-            "flex items-center justify-center gap-2 px-4 py-3 rounded-xl font-bold text-xs transition-all",
+            "flex items-center justify-center gap-2 px-4 py-2.5 rounded-xl font-medium text-sm transition-all",
             activeTab === 'LOGBOOK'
-              ? "bg-amber-600 text-white shadow-md shadow-amber-500/20"
-              : "text-slate-600 hover:bg-slate-100 hover:text-slate-900"
+              ? "bg-indigo-50 text-indigo-700 border-b-2 border-indigo-600 font-semibold"
+              : "text-slate-700 hover:bg-slate-50"
           )}
         >
           <HardHat className="w-4 h-4" />
-          <span>4. Nhật Ký Thi Công</span>
+          <span>4. Nhật ký thi công</span>
         </button>
       </div>
 

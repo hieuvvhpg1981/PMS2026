@@ -32,13 +32,26 @@ export const UserAuthBar: React.FC<UserAuthBarProps> = ({
   const getRoleLabel = (role: string) => {
     switch (role) {
       case 'ADMIN':
-        return 'SYSTEM ADMIN (Xem Tất Cả)';
+        return 'Quản trị hệ thống (Xem tất cả)';
       case 'PROJECT_MANAGER':
-        return 'PROJECT MANAGER (Owner)';
+        return 'Giám đốc dự án (Owner)';
       case 'MEMBER':
-        return 'MEMBER (Được Cấp Quyền)';
+        return 'Chuyên viên (Được cấp quyền)';
       default:
-        return 'VIEWER (Khách)';
+        return 'Người xem (Khách)';
+    }
+  };
+
+  const getRoleShortBadge = (role: string) => {
+    switch (role) {
+      case 'ADMIN':
+        return 'Quản trị viên';
+      case 'PROJECT_MANAGER':
+        return 'Giám đốc DA';
+      case 'MEMBER':
+        return 'Chuyên viên';
+      default:
+        return 'Người xem';
     }
   };
 
@@ -52,16 +65,16 @@ export const UserAuthBar: React.FC<UserAuthBarProps> = ({
           <img
             src={currentUser.avatarUrl}
             alt={currentUser.name}
-            className="w-9 h-9 rounded-full object-cover border-2 border-blue-500/80 shadow-2xs"
+            className="w-9 h-9 rounded-full object-cover border-2 border-indigo-500/80 shadow-2xs"
           />
           <span className="absolute bottom-0 right-0 w-3 h-3 rounded-full bg-emerald-500 border-2 border-white"></span>
         </div>
 
         <div className="hidden sm:block min-w-0 pr-1">
-          <div className="text-xs font-black text-slate-900 truncate flex items-center gap-1.5">
+          <div className="text-xs font-bold text-slate-900 truncate flex items-center gap-1.5">
             <span>{currentUser.name}</span>
-            <span className={`px-2 py-0.5 text-[10px] font-extrabold rounded-md border ${getRoleBadgeStyle(currentUser.role)}`}>
-              {currentUser.role}
+            <span className={`px-2 py-0.5 text-[10px] font-semibold rounded-md border ${getRoleBadgeStyle(currentUser.role)}`}>
+              {getRoleShortBadge(currentUser.role)}
             </span>
           </div>
           <div className="text-[11px] text-slate-500 font-mono truncate">{currentUser.email}</div>

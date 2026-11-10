@@ -91,10 +91,10 @@ export default function NationalDbSyncView() {
       {/* Header Banner */}
       <div className="bg-white p-6 rounded-2xl border border-slate-200 shadow-sm flex flex-col md:flex-row justify-between items-start md:items-center gap-4">
         <div>
-          <div className="inline-flex items-center gap-2 bg-purple-50 text-purple-700 text-xs px-3 py-1 rounded-full font-bold mb-2">
+          <div className="inline-flex items-center gap-2 bg-indigo-50 text-indigo-700 text-xs px-3 py-1 rounded-full font-bold mb-2 border border-indigo-200">
             API CSDL Quốc gia BXD - Schema V2 (NĐ 212/2026/NĐ-CP)
           </div>
-          <h2 className="text-2xl font-bold text-slate-900">ĐỒNG BỘ HỆ THỐNG THÔNG TIN & CSDL QUỐC GIA VỀ HOẠT ĐỘNG XÂY DỰNG</h2>
+          <h2 className="text-2xl font-bold text-slate-900">Đồng bộ hệ thống thông tin & CSDL quốc gia về hoạt động xây dựng</h2>
           <p className="text-xs text-slate-500 mt-1">
             Chuẩn liên thông 2 chiều Mã định danh Dự án Quốc gia, Chứng chỉ năng lực & Hồ sơ 6 Nghị định 2026 ({PMS_CONFIG.LEGAL_REFERENCES.NGHI_DINH_212} & {PMS_CONFIG.LEGAL_REFERENCES.THONG_TU_39})
           </p>
@@ -105,8 +105,8 @@ export default function NationalDbSyncView() {
       <div className="bg-white p-6 rounded-2xl border border-slate-200 shadow-sm space-y-4">
         <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-2 border-b border-slate-100 pb-3">
           <h3 className="text-base font-bold text-slate-900 flex items-center gap-2">
-            <Award className="w-5 h-5 text-blue-600" />
-            TRA CỨU TRỰC TUYẾN CHỨNG CHỈ NĂNG LỰC NHÀ THẦU & CCHN CÁ NHÂN (ĐIỀU KIỆN NĂNG LỰC NĐ 212/2026/NĐ-CP)
+            <Award className="w-5 h-5 text-indigo-600" />
+            Tra cứu trực tuyến chứng chỉ năng lực nhà thầu & CCHN cá nhân (NĐ 212/2026/NĐ-CP)
           </h3>
           <span className="text-xs font-mono bg-emerald-50 text-emerald-700 px-3 py-1 rounded-full border border-emerald-200 font-bold">
             Kết nối: nanglucxaydung.gov.vn
@@ -119,28 +119,28 @@ export default function NationalDbSyncView() {
             value={lookupQuery}
             onChange={e => setLookupQuery(e.target.value)}
             placeholder="Nhập Mã chứng chỉ năng lực (VD: BXD-0000889) hoặc Mã CCHN Chỉ huy trưởng (VD: CHT-008812)..."
-            className="flex-1 px-4 py-2.5 text-xs font-mono font-bold border border-slate-300 rounded-xl bg-slate-50 outline-none focus:border-blue-600"
+            className="flex-1 px-4 py-2.5 text-xs font-mono tabular-nums font-bold border border-slate-300 rounded-xl bg-slate-50 outline-none focus:border-indigo-600"
           />
           <button
             type="button"
             onClick={handleLookupCapability212}
-            className="px-5 py-2.5 bg-blue-600 hover:bg-blue-700 text-white text-xs font-bold rounded-xl transition-all flex items-center justify-center gap-2 shrink-0"
+            className="px-5 py-2.5 bg-indigo-600 hover:bg-indigo-700 text-white text-xs font-semibold rounded-xl transition-all flex items-center justify-center gap-2 shrink-0 shadow-sm"
           >
-            <Search className="w-4 h-4" /> Tra Cứu CSDL Năng Lực BXD
+            <Search className="w-4 h-4" /> Tra cứu CSDL năng lực BXD
           </button>
         </div>
 
         {lookupResult && (
-          <div className="p-4 rounded-xl bg-blue-50/50 border border-blue-200 grid grid-cols-1 md:grid-cols-4 gap-3 text-xs">
+          <div className="p-4 rounded-xl bg-indigo-50/40 border border-indigo-200 grid grid-cols-1 md:grid-cols-4 gap-3 text-xs">
             <div>
               <div className="text-slate-500">Chủ thể / Mã chứng chỉ</div>
               <div className="font-bold text-slate-900 mt-0.5">{lookupResult.holderName}</div>
-              <div className="font-mono font-bold text-blue-700">{lookupResult.certNo}</div>
+              <div className="font-mono tabular-nums font-bold text-indigo-700">{lookupResult.certNo}</div>
             </div>
             <div>
               <div className="text-slate-500">Phân loại & Hạng năng lực</div>
               <div className="font-semibold text-slate-800 mt-0.5">{lookupResult.certType}</div>
-              <span className="inline-block mt-1 bg-emerald-100 text-emerald-800 font-extrabold px-2.5 py-0.5 rounded text-[11px]">
+              <span className="inline-block mt-1 bg-emerald-100 text-emerald-800 font-bold px-2.5 py-0.5 rounded text-[11px] tabular-nums">
                 {lookupResult.grade} (Hạn: {lookupResult.expiryDate})
               </span>
             </div>
@@ -162,20 +162,20 @@ export default function NationalDbSyncView() {
         {/* Connection Control Card */}
         <div className="bg-white p-6 rounded-2xl border border-slate-200 shadow-sm space-y-5">
           <h3 className="text-lg font-bold text-slate-900 flex items-center gap-2 border-b border-slate-100 pb-3">
-            <Globe2 className="w-5 h-5 text-purple-600" />
-            CỔNG ĐỒNG BỘ TRỰC TUYẾN
+            <Globe2 className="w-5 h-5 text-indigo-600" />
+            Cổng đồng bộ trực tuyến
           </h3>
 
           <div className="space-y-4 text-xs">
             <div className="p-3.5 bg-slate-50 rounded-xl border border-slate-200 space-y-1">
               <div className="text-slate-500">Endpoint kết nối chính thức:</div>
-              <div className="font-mono font-bold text-blue-700 break-all">{PMS_CONFIG.NATIONAL_DB_ENDPOINT}</div>
+              <div className="font-mono font-bold text-indigo-700 break-all">{PMS_CONFIG.NATIONAL_DB_ENDPOINT}</div>
             </div>
 
             <div className="p-3.5 bg-slate-50 rounded-xl border border-slate-200 space-y-1">
               <div className="text-slate-500">Khung pháp lý & Chuẩn Schema:</div>
               <div className="font-semibold text-slate-900">{PMS_CONFIG.LEGAL_REFERENCES.NGHI_DINH_212}</div>
-              <div className="text-[11px] text-purple-700 font-mono">{PMS_CONFIG.LEGAL_REFERENCES.THONG_TU_39}</div>
+              <div className="text-[11px] text-indigo-700 font-mono">{PMS_CONFIG.LEGAL_REFERENCES.THONG_TU_39}</div>
             </div>
 
             {syncStatus && (
@@ -188,16 +188,16 @@ export default function NationalDbSyncView() {
 
             <button
               onClick={handleSendToMocApi}
-              className="w-full bg-purple-600 hover:bg-purple-700 text-white text-sm font-bold py-2.5 rounded-xl transition-all shadow-md flex items-center justify-center gap-2"
+              className="w-full bg-indigo-600 hover:bg-indigo-700 text-white text-sm font-semibold py-2.5 rounded-xl transition-all shadow-sm flex items-center justify-center gap-2"
             >
-              <Send className="w-4 h-4" /> Đồng Bộ Trực Tiếp Lên CSDL Quốc Gia
+              <Send className="w-4 h-4" /> Đồng bộ trực tiếp lên CSDL quốc gia
             </button>
 
             <button
               onClick={handleDownloadJson}
-              className="w-full bg-slate-100 hover:bg-slate-200 text-slate-800 text-sm font-bold py-2.5 rounded-xl transition-all border border-slate-300 flex items-center justify-center gap-2"
+              className="w-full bg-white hover:bg-slate-50 text-slate-700 text-sm font-semibold py-2.5 rounded-xl transition-all border border-slate-300 flex items-center justify-center gap-2 shadow-2xs"
             >
-              <Download className="w-4 h-4" /> Tải Tệp JSON Chuẩn NĐ 212 & TT 39
+              <Download className="w-4 h-4" /> Tải tệp JSON chuẩn NĐ 212 & TT 39
             </button>
           </div>
         </div>
@@ -206,21 +206,21 @@ export default function NationalDbSyncView() {
         <div className="lg:col-span-2 bg-slate-900 p-6 rounded-2xl text-slate-200 shadow-xl flex flex-col justify-between space-y-4">
           <div>
             <div className="flex items-center justify-between border-b border-slate-800 pb-3">
-              <span className="text-xs font-mono font-bold text-purple-400 flex items-center gap-2">
-                <FileCode className="w-4 h-4" /> JSON PAYLOAD 6 PHÂN HỆ PHÁP LÝ 2026 (NĐ 212/2026 & TT 39/2026/TT-BXD)
+              <span className="text-xs font-mono font-bold text-sky-400 flex items-center gap-2">
+                <FileCode className="w-4 h-4" /> JSON Payload 6 phân hệ pháp lý 2026 (NĐ 212/2026 & TT 39/2026/TT-BXD)
               </span>
-              <span className="text-[11px] bg-purple-500/20 text-purple-300 px-2.5 py-0.5 rounded-full border border-purple-400/30">
+              <span className="text-[11px] bg-indigo-500/20 text-indigo-300 px-2.5 py-0.5 rounded-full border border-indigo-400/30">
                 MOC-NATIONAL-DB-2026-V2
               </span>
             </div>
 
-            <pre className="mt-4 p-4 bg-slate-950 rounded-xl text-xs font-mono text-emerald-400 overflow-x-auto h-80 border border-slate-800">
+            <pre className="mt-4 p-4 bg-slate-950 rounded-xl text-xs font-mono tabular-nums text-emerald-400 overflow-x-auto h-80 border border-slate-800">
               {JSON.stringify(exportResult.data, null, 2)}
             </pre>
           </div>
 
           <div className="text-xs text-slate-400 flex items-center gap-2 pt-2 border-t border-slate-800">
-            <Database className="w-4 h-4 text-purple-400 shrink-0" />
+            <Database className="w-4 h-4 text-sky-400 shrink-0" />
             <span>Tự động đóng gói 6 phân hệ (NĐ 217, NĐ 206, NĐ 212, NĐ 210, NĐ 207, NĐ 209) và xác thực chữ ký số SmartCA.</span>
           </div>
         </div>
