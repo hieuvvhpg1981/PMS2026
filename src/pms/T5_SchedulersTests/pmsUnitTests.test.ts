@@ -6,7 +6,7 @@
 
 import { PmsService, UserService } from '../T2_Services';
 import { ProjectGroup, ConstructionGrade, ApprovalStatus, GpmbStatus, db } from '../T0_Config';
-import { safeNumber, safeString, formatVND, validateRequiredAttachments, checkEstimateExceedsTMDT, parseExcelArrayBufferToJSON, updateBoqRow, recalculateTotalBudget, calculateBiddingSavings, validateRequiredAttachmentsStage3, validatePackageDisbursement, canUserAccessProject, filterProjectsForUser, uploadToUserPersonalDrive, shareDriveFolderWithUsers, verifyGoogleDriveConnection, decodeGoogleJwt, matchUserRole, authenticateUserCredentials, updateUserAccountInSystem } from '../T1_Utils';
+import { safeNumber, safeString, formatVND, validateRequiredAttachments, checkEstimateExceedsTMDT, parseExcelArrayBufferToJSON, updateBoqRow, recalculateTotalBudget, calculateBiddingSavings, validateRequiredAttachmentsStage3, validatePackageDisbursement, canUserAccessProject, filterProjectsForUser, uploadToUserPersonalDrive, shareDriveFolderWithUsers, verifyGoogleDriveConnection, decodeGoogleJwt, matchUserRole, authenticateUserCredentials, updateUserAccountInSystem, evaluateCostOverrunRisk206, calculateIpcNetPayment210, validateContractorAndCchn212 } from '../T1_Utils';
 import * as XLSX from 'xlsx';
 
 function runPmsUnitTestSuite() {
@@ -288,6 +288,38 @@ function runPmsUnitTestSuite() {
   assert(
     typeof UserService.fetchUsersFromFirestore === 'function' && typeof UserService.authenticateUserFirestore === 'function',
     'UserService cung cấp đầy đủ các API bất đồng bộ (fetchUsersFromFirestore, authenticateUserFirestore, saveUserProfileToFirestore)'
+  );
+
+  // --- TEST CASE 16: 2026 Construction Investment Legal Decrees (NĐ 217, 206, 210, 212, 207, 209) ---
+  console.log('\n--- TEST 16: 2026 Construction Investment Legal Decrees Compliance ---');
+  const routeSpecialArea60B = PmsService.autoRouteProjectGroup(60_000_000_000, false, false, true);
+  assert(
+    routeSpecialArea60B.group === ProjectGroup.BCKTKT && routeSpecialArea60B.designStepsCount === 1,
+    'NĐ 217/2026: Dự án 60 tỷ tại Vùng đặc biệt khó khăn (< 70 tỷ) được định tuyến lập BCKTKT (Thiết kế 1 bước)'
+  );
+
+  const costRiskRed = evaluateCostOverrunRisk206(950_000_000_000, 900_000_000_000, 30_000_000_000, 35_000_000_000, 50_000_000_000);
+  assert(
+    costRiskRed.riskLevel === 'RED_HARD_BLOCK' && costRiskRed.projectedTotalVnd === 965_000_000_000,
+    'NĐ 206/2026: Cảnh báo Đỏ (RED_HARD_BLOCK) khi Tổng chi phí dự kiến (965 tỷ) vượt Tổng mức đầu tư (950 tỷ)'
+  );
+
+  const ipcCalc = calculateIpcNetPayment210(100_000_000_000, 20, 5, 1_000_000_000, 1.05);
+  assert(
+    ipcCalc.adjustedGrossAmount === 105_000_000_000 && ipcCalc.netPayableAmount === 77_750_000_000,
+    'NĐ 210/2026: Tính toán IPC chuẩn xác (100 tỷ * Pn 1.05 = 105 tỷ, trừ tạm ứng 21 tỷ, bảo hành 5.25 tỷ, phạt 1 tỷ -> Net = 77.75 tỷ)'
+  );
+
+  const capCheckFail = validateContractorAndCchn212('CẤP I', 'HẠNG II', '2030-12-31', 'HẠNG I', '2030-12-31');
+  assert(
+    capCheckFail.isQualified === false && capCheckFail.violationReason.includes('CHẶN KÝ HỢP ĐỒNG'),
+    'NĐ 212/2026: Chặn ký hợp đồng khi Nhà thầu Hạng II tham gia thi công công trình Cấp I'
+  );
+
+  const nationalSchema = PmsService.exportNationalDatabaseSchema212();
+  assert(
+    nationalSchema.schemaVersion === 'MOC-NATIONAL-DB-2026-V2' && Array.isArray(nationalSchema.projectsPayload),
+    'NĐ 212/2026 & TT 39/2026: Xuất thành công Schema CSDL Quốc gia 6 phân hệ MOC-NATIONAL-DB-2026-V2'
   );
 
   console.log(`\n================ SUMMARY: ${passed} PASSED, ${failed} FAILED ================`);

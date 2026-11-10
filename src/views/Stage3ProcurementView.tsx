@@ -1,8 +1,8 @@
 import React, { useState, useEffect } from 'react';
 import { PmsService, ProjectData, SiteClearanceRecord, ProcurementPackageRecord, ContractManagementRecord } from '../pms/T2_Services';
 import { PmsHandlers } from '../pms/T3_Handlers';
-import { ProcurementMethod, ContractType, GpmbStatus, STAGE3_DOCUMENT_TYPES } from '../pms/T0_Config';
-import { formatVND, safeNumber, safeString, calculateBiddingSavings, generateExcelTemplate, canEditProject } from '../pms/T1_Utils';
+import { ProcurementMethod, ContractType, GpmbStatus, STAGE3_DOCUMENT_TYPES, CONTRACT_TEMPLATES_210, CapabilityGrade } from '../pms/T0_Config';
+import { formatVND, safeNumber, safeString, calculateBiddingSavings, generateExcelTemplate, canEditProject, validateContractorAndCchn212, calculateIpcNetPayment210 } from '../pms/T1_Utils';
 import { UserProfile } from '../pms/T2_Services';
 import Stage3DocumentUploader from '../components/Stage3DocumentUploader';
 import ExcelDragDropUploader from '../components/ExcelDragDropUploader';
@@ -54,14 +54,24 @@ export default function Stage3ProcurementView({ currentUser }: { currentUser?: U
   const [editingContractId, setEditingContractId] = useState<string | null>(null);
   const [draftContract, setDraftContract] = useState<Partial<ContractManagementRecord>>({});
 
-  // New Contract Form State
+  // New Contract Form State (NĐ 210/2026 & NĐ 212/2026)
   const [newContractNo, setNewContractNo] = useState<string>('01/2026/HĐ-XL');
+  const [newTemplateCode, setNewTemplateCode] = useState<string>('MẪU-01/210-BXD');
   const [newContractName, setNewContractName] = useState<string>('Gói thầu số 01: Thi công XL Cầu & Đường dẫn');
   const [newContractorName, setNewContractorName] = useState<string>('Tập đoàn Xây dựng Đèo Cả - Vinaconex');
   const [newContractType, setNewContractType] = useState<ContractType>(ContractType.DON_GIA_DIEU_CHINH);
   const [newContractValue, setNewContractValue] = useState<number>(880000000000);
   const [newAdvancePct, setNewAdvancePct] = useState<number>(20);
   const [newRetentionPct, setNewRetentionPct] = useState<number>(5);
+  const [newPerformanceBondPct, setNewPerformanceBondPct] = useState<number>(10);
+  const [newPriceAdjustmentPn, setNewPriceAdjustmentPn] = useState<number>(1.02);
+  const [newPenaltyAmount, setNewPenaltyAmount] = useState<number>(0);
+
+  // Contractor Capability & CCHN Validation State (NĐ 212/2026)
+  const [contractorCertGrade, setContractorCertGrade] = useState<string>(CapabilityGrade.HANG_I);
+  const [contractorCertExpiry, setContractorCertExpiry] = useState<string>('2030-12-31');
+  const [commanderCchnGrade, setCommanderCchnGrade] = useState<string>(CapabilityGrade.HANG_I);
+  const [commanderCchnExpiry, setCommanderCchnExpiry] = useState<string>('2029-10-15');
 
   // Contract Document Sample Modal
   const [showContractDocModal, setShowContractDocModal] = useState<boolean>(false);
@@ -251,18 +261,43 @@ export default function Stage3ProcurementView({ currentUser }: { currentUser?: U
   };
 
   // ================= TAB 3: CONTRACT MANAGEMENT =================
+  const capabilityCheck212 = validateContractorAndCchn212(
+    currentProject?.CAP_CONG_TRINH || 'CẤP I',
+    contractorCertGrade,
+    contractorCertExpiry,
+    commanderCchnGrade,
+    commanderCchnExpiry
+  );
+
+  const ipcPreview210 = calculateIpcNetPayment210(
+    safeNumber(newContractValue) * 0.25, // Giả lập kỳ nghiệm thu IPC = 25% HĐ
+    safeNumber(newAdvancePct),
+    safeNumber(newRetentionPct),
+    safeNumber(newPenaltyAmount),
+    safeNumber(newPriceAdjustmentPn)
+  );
+
   const handleAddNewContract = () => {
     if (!currentProject) return;
+    if (!capabilityCheck212.isQualified) {
+      toast.error(capabilityCheck212.message);
+      return;
+    }
+
     const newContract: ContractManagementRecord = {
       contractId: `HD-${Date.now().toString().slice(-4)}`,
       packageId: khlcntItems[0]?.packageId || 'GT-01',
       contractNo: newContractNo,
+      templateCode: newTemplateCode,
       contractName: newContractName,
       contractorName: newContractorName,
       contractType: newContractType,
       contractValue: safeNumber(newContractValue),
+      performanceBondPct: safeNumber(newPerformanceBondPct),
       advancePct: safeNumber(newAdvancePct),
       retentionPct: safeNumber(newRetentionPct),
+      priceAdjustmentFactorPn: safeNumber(newPriceAdjustmentPn),
+      penaltyAmountVnd: safeNumber(newPenaltyAmount),
       signDate: new Date().toISOString().split('T')[0],
       startDate: new Date().toISOString().split('T')[0],
       endDate: '2027-12-31',
@@ -272,7 +307,7 @@ export default function Stage3ProcurementView({ currentUser }: { currentUser?: U
     const updatedContracts = [...contractItems, newContract];
     const res = PmsHandlers.stage3ContractApi(currentProject.PROJECT_ID, updatedContracts);
     if (res.success) {
-      toast.success(`Đã ký kết và khởi tạo hợp đồng số [${newContractNo}]!`);
+      toast.success(`Đã ký kết và khởi tạo hợp đồng số [${newContractNo}] chuẩn NĐ 210/2026/NĐ-CP!`);
       refreshProjectData();
     }
   };
@@ -283,12 +318,16 @@ export default function Stage3ProcurementView({ currentUser }: { currentUser?: U
       contractId: 'HD-SAMPLE',
       packageId: 'GT-01',
       contractNo: newContractNo,
+      templateCode: newTemplateCode,
       contractName: newContractName,
       contractorName: newContractorName,
       contractType: newContractType,
       contractValue: safeNumber(newContractValue),
+      performanceBondPct: safeNumber(newPerformanceBondPct),
       advancePct: safeNumber(newAdvancePct),
       retentionPct: safeNumber(newRetentionPct),
+      priceAdjustmentFactorPn: safeNumber(newPriceAdjustmentPn),
+      penaltyAmountVnd: safeNumber(newPenaltyAmount),
       signDate: new Date().toISOString().split('T')[0],
       startDate: new Date().toISOString().split('T')[0],
       endDate: '2027-12-31',
@@ -714,18 +753,34 @@ export default function Stage3ProcurementView({ currentUser }: { currentUser?: U
             <div className="lg:col-span-2 bg-white p-6 rounded-2xl border border-slate-200 shadow-sm space-y-5">
               <h3 className="text-base font-bold text-slate-900 flex items-center gap-2 border-b border-slate-100 pb-3">
                 <FileText className="w-5 h-5 text-blue-600" />
-                CẬP NHẬT KẾT QUẢ ĐẤU THẦU & SINH HỢP ĐỒNG MẪU (QĐ 1040/QĐ-BXD)
+                CẬP NHẬT KẾT QUẢ ĐẤU THẦU & SINH HỢP ĐỒNG MẪU (NĐ 210/2026/NĐ-CP & QĐ 1040/QĐ-BXD)
               </h3>
 
               <div className="space-y-4 text-xs">
-                <div>
-                  <label className="block font-bold text-slate-700 uppercase mb-1">Tên Gói Thầu</label>
-                  <input
-                    type="text"
-                    value={newContractName}
-                    onChange={e => setNewContractName(e.target.value)}
-                    className="w-full px-3 py-2 border border-slate-300 rounded-xl bg-white outline-none font-semibold"
-                  />
+                <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+                  <div>
+                    <label className="block font-bold text-slate-700 uppercase mb-1">Biểu Mẫu Hợp Đồng Chuẩn (NĐ 210/2026)</label>
+                    <select
+                      value={newTemplateCode}
+                      onChange={e => setNewTemplateCode(e.target.value)}
+                      className="w-full px-3 py-2 border border-slate-300 rounded-xl bg-blue-50/40 outline-none font-bold text-blue-900"
+                    >
+                      {CONTRACT_TEMPLATES_210.map(tpl => (
+                        <option key={tpl.code} value={tpl.code}>
+                          [{tpl.code}] {tpl.name}
+                        </option>
+                      ))}
+                    </select>
+                  </div>
+                  <div>
+                    <label className="block font-bold text-slate-700 uppercase mb-1">Tên Gói Thầu</label>
+                    <input
+                      type="text"
+                      value={newContractName}
+                      onChange={e => setNewContractName(e.target.value)}
+                      className="w-full px-3 py-2 border border-slate-300 rounded-xl bg-white outline-none font-semibold"
+                    />
+                  </div>
                 </div>
 
                 <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
@@ -752,7 +807,7 @@ export default function Stage3ProcurementView({ currentUser }: { currentUser?: U
 
                 <div className="grid grid-cols-1 sm:grid-cols-3 gap-4">
                   <div>
-                    <label className="block font-bold text-slate-700 uppercase mb-1">Loại Hợp Đồng</label>
+                    <label className="block font-bold text-slate-700 uppercase mb-1">Loại Hợp Đồng (NĐ 210/2026)</label>
                     <select
                       value={newContractType}
                       onChange={e => setNewContractType(e.target.value as any)}
@@ -761,6 +816,9 @@ export default function Stage3ProcurementView({ currentUser }: { currentUser?: U
                       <option value={ContractType.DON_GIA_DIEU_CHINH}>Hợp đồng Đơn giá điều chỉnh</option>
                       <option value={ContractType.DON_GIA_CO_DINH}>Hợp đồng Đơn giá cố định</option>
                       <option value={ContractType.TRON_GOI}>Hợp đồng Trọn gói</option>
+                      <option value={ContractType.THEO_THOI_GIAN}>Hợp đồng Theo thời gian</option>
+                      <option value={ContractType.HOP_DONG_KET_HOP}>Hợp đồng Kết hợp</option>
+                      <option value={ContractType.HOP_DONG_EPC}>Hợp đồng Tổng thầu EPC</option>
                     </select>
                   </div>
 
@@ -785,18 +843,145 @@ export default function Stage3ProcurementView({ currentUser }: { currentUser?: U
                   </div>
                 </div>
 
-                {/* Capability Assessment Badge */}
-                <div className="bg-emerald-50 border border-emerald-200 p-3.5 rounded-xl text-emerald-900 flex justify-between items-center">
-                  <div className="flex items-center gap-2">
-                    <Award className="w-5 h-5 text-emerald-600" />
+                {/* NĐ 210/2026 Extended Parameters: Performance Bond, Retention, Pn, Penalty */}
+                <div className="grid grid-cols-2 sm:grid-cols-4 gap-3 bg-slate-50 p-3.5 rounded-xl border border-slate-200">
+                  <div>
+                    <label className="block font-bold text-slate-600 text-[11px] mb-1">Bảo Lãnh THHĐ (%)</label>
+                    <input
+                      type="number"
+                      value={newPerformanceBondPct}
+                      onChange={e => setNewPerformanceBondPct(Number(e.target.value) || 0)}
+                      className="w-full px-2.5 py-1.5 border rounded-lg bg-white font-mono font-bold"
+                    />
+                  </div>
+                  <div>
+                    <label className="block font-bold text-slate-600 text-[11px] mb-1">Giữ Lại Bảo Hành (%)</label>
+                    <input
+                      type="number"
+                      value={newRetentionPct}
+                      onChange={e => setNewRetentionPct(Number(e.target.value) || 0)}
+                      className="w-full px-2.5 py-1.5 border rounded-lg bg-white font-mono font-bold"
+                    />
+                  </div>
+                  <div>
+                    <label className="block font-bold text-slate-600 text-[11px] mb-1">Hệ Số Điều Chỉnh Giá (Pn)</label>
+                    <input
+                      type="number"
+                      step="0.01"
+                      value={newPriceAdjustmentPn}
+                      onChange={e => setNewPriceAdjustmentPn(Number(e.target.value) || 1)}
+                      className="w-full px-2.5 py-1.5 border rounded-lg bg-white font-mono font-bold text-blue-700"
+                    />
+                  </div>
+                  <div>
+                    <label className="block font-bold text-slate-600 text-[11px] mb-1">Phạt Vi Phạm HĐ (VND)</label>
+                    <input
+                      type="number"
+                      value={newPenaltyAmount}
+                      onChange={e => setNewPenaltyAmount(Number(e.target.value) || 0)}
+                      className="w-full px-2.5 py-1.5 border rounded-lg bg-white font-mono font-bold text-red-600"
+                    />
+                  </div>
+                </div>
+
+                {/* NĐ 212/2026 Contractor Capability & CCHN Inputs */}
+                <div className="p-3.5 rounded-xl border border-blue-200 bg-blue-50/40 space-y-3">
+                  <div className="font-bold text-blue-900 flex items-center justify-between">
+                    <span>KIỂM TRA ĐIỀU KIỆN NĂNG LỰC NHÀ THẦU & CCHN CHỈ HUY TRƯỞNG (NĐ 212/2026/NĐ-CP)</span>
+                    <span className="text-[11px] font-mono bg-blue-100 text-blue-800 px-2 py-0.5 rounded">
+                      Công trình: {currentProject.CAP_CONG_TRINH}
+                    </span>
+                  </div>
+                  <div className="grid grid-cols-2 sm:grid-cols-4 gap-3">
                     <div>
-                      <div className="font-bold">ĐÁNH GIÁ NĂNG LỰC NHÀ THẦU TỰ ĐỘNG (CSDL BXD)</div>
-                      <div className="text-[11px] text-emerald-800">Nhà thầu đạt Chứng chỉ Năng lực Hạng I - Đáp ứng dự án Cấp I</div>
+                      <label className="block text-[11px] font-bold text-slate-700 mb-1">Hạng CCNL Tổ Chức</label>
+                      <select
+                        value={contractorCertGrade}
+                        onChange={e => setContractorCertGrade(e.target.value)}
+                        className="w-full px-2 py-1.5 border rounded-lg bg-white font-bold"
+                      >
+                        <option value={CapabilityGrade.HANG_I}>{CapabilityGrade.HANG_I}</option>
+                        <option value={CapabilityGrade.HANG_II}>{CapabilityGrade.HANG_II}</option>
+                        <option value={CapabilityGrade.HANG_III}>{CapabilityGrade.HANG_III}</option>
+                      </select>
+                    </div>
+                    <div>
+                      <label className="block text-[11px] font-bold text-slate-700 mb-1">Hạn CCNL Tổ Chức</label>
+                      <input
+                        type="date"
+                        value={contractorCertExpiry}
+                        onChange={e => setContractorCertExpiry(e.target.value)}
+                        className="w-full px-2 py-1.5 border rounded-lg bg-white font-mono"
+                      />
+                    </div>
+                    <div>
+                      <label className="block text-[11px] font-bold text-slate-700 mb-1">Hạng CCHN Chỉ Huy Trưởng</label>
+                      <select
+                        value={commanderCchnGrade}
+                        onChange={e => setCommanderCchnGrade(e.target.value)}
+                        className="w-full px-2 py-1.5 border rounded-lg bg-white font-bold"
+                      >
+                        <option value={CapabilityGrade.HANG_I}>{CapabilityGrade.HANG_I}</option>
+                        <option value={CapabilityGrade.HANG_II}>{CapabilityGrade.HANG_II}</option>
+                        <option value={CapabilityGrade.HANG_III}>{CapabilityGrade.HANG_III}</option>
+                      </select>
+                    </div>
+                    <div>
+                      <label className="block text-[11px] font-bold text-slate-700 mb-1">Hạn CCHN Chỉ Huy Trưởng</label>
+                      <input
+                        type="date"
+                        value={commanderCchnExpiry}
+                        onChange={e => setCommanderCchnExpiry(e.target.value)}
+                        className="w-full px-2 py-1.5 border rounded-lg bg-white font-mono"
+                      />
                     </div>
                   </div>
-                  <span className="font-mono text-sm font-extrabold bg-white px-3 py-1 rounded-lg border border-emerald-300 text-emerald-700">
-                    95/100 ĐIỂM
+                </div>
+
+                {/* Capability Assessment Dynamic Badge */}
+                <div className={`p-3.5 rounded-xl border flex justify-between items-center ${
+                  capabilityCheck212.isQualified
+                    ? 'bg-emerald-50 border-emerald-200 text-emerald-900'
+                    : 'bg-red-50 border-red-300 text-red-900'
+                }`}>
+                  <div className="flex items-center gap-2">
+                    <Award className={`w-5 h-5 ${capabilityCheck212.isQualified ? 'text-emerald-600' : 'text-red-600'}`} />
+                    <div>
+                      <div className="font-bold">ĐÁNH GIÁ NĂNG LỰC NHÀ THẦU & CCHN TỰ ĐỘNG (CSDL BXD - NĐ 212/2026)</div>
+                      <div className="text-[11px]">{capabilityCheck212.message}</div>
+                    </div>
+                  </div>
+                  <span className={`font-mono text-xs font-extrabold bg-white px-3 py-1 rounded-lg border ${
+                    capabilityCheck212.isQualified ? 'border-emerald-300 text-emerald-700' : 'border-red-300 text-red-700'
+                  }`}>
+                    {capabilityCheck212.isQualified ? 'ĐẠT NĂNG LỰC' : 'CHẶN KÝ HĐ'}
                   </span>
+                </div>
+
+                {/* Live IPC Calculation Preview per NĐ 210/2026 */}
+                <div className="bg-slate-900 text-slate-100 p-4 rounded-xl space-y-2">
+                  <div className="text-[11px] font-bold text-blue-300 uppercase flex justify-between">
+                    <span>MÔ PHỎNG TÍNH TOÁN KỲ THANH TOÁN IPC (GIẢ ĐỊNH KHỐI LƯỢNG ĐỢT = 25% HĐ - NĐ 210/2026)</span>
+                    <span>Pn = {newPriceAdjustmentPn}</span>
+                  </div>
+                  <div className="grid grid-cols-2 sm:grid-cols-4 gap-2 text-[11px] pt-1">
+                    <div className="bg-slate-800 p-2 rounded-lg">
+                      <div className="text-slate-400">Giá trị sau điều chỉnh Pn</div>
+                      <div className="font-mono font-bold text-white">{formatVND(ipcPreview210.adjustedGrossAmount)}</div>
+                    </div>
+                    <div className="bg-slate-800 p-2 rounded-lg">
+                      <div className="text-slate-400">Thu hồi tạm ứng ({newAdvancePct}%)</div>
+                      <div className="font-mono font-bold text-amber-300">-{formatVND(ipcPreview210.advanceRecoveryAmount)}</div>
+                    </div>
+                    <div className="bg-slate-800 p-2 rounded-lg">
+                      <div className="text-slate-400">Giữ lại bảo hành ({newRetentionPct}%)</div>
+                      <div className="font-mono font-bold text-purple-300">-{formatVND(ipcPreview210.retentionWarrantyAmount)}</div>
+                    </div>
+                    <div className="bg-emerald-950/80 border border-emerald-700 p-2 rounded-lg">
+                      <div className="text-emerald-300">Thực nhận giải ngân (Net IPC)</div>
+                      <div className="font-mono font-extrabold text-emerald-400">{formatVND(ipcPreview210.netPayableAmount)}</div>
+                    </div>
+                  </div>
                 </div>
 
                 {/* Action Buttons */}
@@ -806,7 +991,7 @@ export default function Stage3ProcurementView({ currentUser }: { currentUser?: U
                     onClick={handleGenerateContractSample}
                     className="flex-1 bg-slate-100 hover:bg-slate-200 text-slate-800 text-xs font-bold py-2.5 rounded-xl border border-slate-300 transition-all flex items-center justify-center gap-1.5"
                   >
-                    <Download className="w-4 h-4 text-blue-600" /> Xuất Hợp Đồng Mẫu QĐ 1040
+                    <Download className="w-4 h-4 text-blue-600" /> Xuất Hợp Đồng Mẫu QĐ 1040 / NĐ 210
                   </button>
 
                   <button
@@ -837,6 +1022,11 @@ export default function Stage3ProcurementView({ currentUser }: { currentUser?: U
                     </div>
                     <div className="text-xs font-bold text-slate-900">{c.contractName}</div>
                     <div className="text-[11px] text-slate-600">Nhà thầu: {c.contractorName}</div>
+                    {c.templateCode && (
+                      <div className="text-[10px] font-mono text-purple-700 bg-purple-50 px-2 py-0.5 rounded inline-block">
+                        Mẫu: {c.templateCode} | Pn: {c.priceAdjustmentFactorPn ?? 1.0}
+                      </div>
+                    )}
                     <div className="text-xs font-mono font-extrabold text-emerald-700">
                       Giá trị: {formatVND(c.contractValue)}
                     </div>

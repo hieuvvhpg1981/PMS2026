@@ -851,4 +851,193 @@ export function updateUserAccountInSystem(
   };
 }
 
+/**
+ * NĐ 206/2026/NĐ-CP: CẢNH BÁO SỚM 3 TẦNG KHI CHI PHÍ CÓ NGUY CƠ VƯỢT TỔNG MỨC ĐẦU TƯ (TMĐT)
+ */
+export function evaluateCostOverrunRisk206(
+  tmdtApproved: number,
+  totalContractValue: number,
+  totalAddendumsValue: number,
+  gpmbTotalCost: number,
+  contingencyFundApproved: number
+): {
+  level: 'SAFE' | 'WARNING_YELLOW' | 'HIGH_ORANGE' | 'HARD_BLOCK_RED';
+  riskLevel: 'SAFE' | 'WARNING_YELLOW' | 'HIGH_ORANGE' | 'RED_HARD_BLOCK';
+  totalCommittedCost: number;
+  projectedTotalVnd: number;
+  tmdtUsagePct: number;
+  contingencyUsedPct: number;
+  message: string;
+} {
+  const tmdt = safeNumber(tmdtApproved);
+  const committed = safeNumber(totalContractValue) + safeNumber(totalAddendumsValue) + safeNumber(gpmbTotalCost);
+  const addendums = safeNumber(totalAddendumsValue);
+  const contingency = safeNumber(contingencyFundApproved) || Math.round(tmdt * 0.05);
+
+  const tmdtUsagePct = tmdt > 0 ? Number(((committed / tmdt) * 100).toFixed(2)) : 0;
+  const contingencyUsedPct = contingency > 0 ? Number(((addendums / contingency) * 100).toFixed(2)) : 0;
+
+  if (tmdt > 0 && committed > tmdt) {
+    return {
+      level: 'HARD_BLOCK_RED',
+      riskLevel: 'RED_HARD_BLOCK',
+      totalCommittedCost: committed,
+      projectedTotalVnd: committed,
+      tmdtUsagePct,
+      contingencyUsedPct,
+      message: `🛑 CHẶN CỨNG (NĐ 206/2026): Tổng chi phí cam kết (${formatVND(committed)}) đã VƯỢT Tổng mức đầu tư được duyệt (${formatVND(tmdt)}) [${tmdtUsagePct}%]! Bắt buộc thực hiện thủ tục Phê duyệt điều chỉnh Chủ trương / Điều chỉnh TMĐT.`
+    };
+  }
+
+  if (tmdtUsagePct >= 90) {
+    return {
+      level: 'HIGH_ORANGE',
+      riskLevel: 'HIGH_ORANGE',
+      totalCommittedCost: committed,
+      projectedTotalVnd: committed,
+      tmdtUsagePct,
+      contingencyUsedPct,
+      message: `🟠 CẢNH BÁO CAO (NĐ 206/2026): Tổng nghĩa vụ chi (${formatVND(committed)}) đã chạm ngưỡng ${tmdtUsagePct}% TMĐT! Cần kiểm soát chặt chẽ các phụ lục phát sinh.`
+    };
+  }
+
+  if (contingencyUsedPct >= 50) {
+    return {
+      level: 'WARNING_YELLOW',
+      riskLevel: 'WARNING_YELLOW',
+      totalCommittedCost: committed,
+      projectedTotalVnd: committed,
+      tmdtUsagePct,
+      contingencyUsedPct,
+      message: `⚠️ CẢNH BÁO SỚM (NĐ 206/2026): Giá trị phát sinh đã sử dụng ${contingencyUsedPct}% Quỹ dự phòng (${formatVND(contingency)}).`
+    };
+  }
+
+  return {
+    level: 'SAFE',
+    riskLevel: 'SAFE',
+    totalCommittedCost: committed,
+    projectedTotalVnd: committed,
+    tmdtUsagePct,
+    contingencyUsedPct,
+    message: `✅ AN TOÀN CHI PHÍ (NĐ 206/2026): Tổng nghĩa vụ chi đạt ${tmdtUsagePct}% TMĐT, nằm trong hạn mức an toàn.`
+  };
+}
+
+/**
+ * NĐ 210/2026/NĐ-CP: TÍNH TOÁN BẢNG XÁC NHẬN GIÁ TRỊ KHỐI LƯỢNG HOÀN THÀNH (PHỤ LỤC 03A) & KHẤU TRỪ TẠM ỨNG / BẢO HÀNH / PHẠT
+ */
+export function calculateIpcNetPayment210(
+  grossAcceptedAmount: number,
+  advanceRecoveryPct: number = 20,
+  retentionWarrantyPct: number = 5,
+  penaltyViolationAmount: number = 0,
+  priceAdjustmentFactorPn: number = 1.0
+): {
+  adjustedGrossAmount: number;
+  advanceDeductionAmount: number;
+  advanceRecoveryAmount: number;
+  retentionWarrantyAmount: number;
+  penaltyAmount: number;
+  netPayableAmount: number;
+} {
+  const gross = safeNumber(grossAcceptedAmount);
+  const pn = safeNumber(priceAdjustmentFactorPn) > 0 ? safeNumber(priceAdjustmentFactorPn) : 1.0;
+  const adjustedGrossAmount = Math.round(gross * pn);
+
+  const advanceDeductionAmount = Math.round(adjustedGrossAmount * (safeNumber(advanceRecoveryPct) / 100));
+  const retentionWarrantyAmount = Math.round(adjustedGrossAmount * (safeNumber(retentionWarrantyPct) / 100));
+  const penaltyAmount = safeNumber(penaltyViolationAmount);
+
+  const netPayableAmount = Math.max(0, adjustedGrossAmount - advanceDeductionAmount - retentionWarrantyAmount - penaltyAmount);
+
+  return {
+    adjustedGrossAmount,
+    advanceDeductionAmount,
+    advanceRecoveryAmount: advanceDeductionAmount,
+    retentionWarrantyAmount,
+    penaltyAmount,
+    netPayableAmount
+  };
+}
+
+/**
+ * NĐ 212/2026/NĐ-CP: ĐỐI CHIẾU TỰ ĐỘNG CHỨNG CHỈ NĂNG LỰC NHÀ THẦU & CCHN CHỈ HUY TRƯỞNG VỚI CẤP CÔNG TRÌNH
+ */
+export function validateContractorAndCchn212(
+  projectGrade: string,
+  contractorCertGrade: string,
+  contractorCertExpiry: string,
+  commanderCchnGrade: string = 'HẠNG I',
+  commanderCchnExpiry: string = '2028-12-31'
+): {
+  isValid: boolean;
+  isQualified: boolean;
+  reason: string;
+  message: string;
+  violationReason: string;
+} {
+  const today = new Date().toISOString().split('T')[0];
+  const pGrade = safeString(projectGrade).toUpperCase();
+
+  if (contractorCertExpiry && contractorCertExpiry < today) {
+    const msg = `CHẶN KÝ HỢP ĐỒNG (NĐ 212/2026): Chứng chỉ năng lực Nhà thầu đã hết hạn ngày ${contractorCertExpiry}!`;
+    return { isValid: false, isQualified: false, reason: msg, message: msg, violationReason: msg };
+  }
+
+  if (commanderCchnExpiry && commanderCchnExpiry < today) {
+    const msg = `CHẶN KÝ HỢP ĐỒNG (NĐ 212/2026): Chứng chỉ hành nghề (CCHN) của Chỉ huy trưởng/Chủ nhiệm đã hết hạn ngày ${commanderCchnExpiry}!`;
+    return { isValid: false, isQualified: false, reason: msg, message: msg, violationReason: msg };
+  }
+
+  const normalizeRank = (gradeStr: string): number => {
+    const s = safeString(gradeStr).toUpperCase();
+    if (s.includes('HẠNG I') && !s.includes('HẠNG II') && !s.includes('HẠNG III')) return 1;
+    if (s.includes('HẠNG 1')) return 1;
+    if (s.includes('HẠNG II') && !s.includes('HẠNG III')) return 2;
+    if (s.includes('HẠNG 2')) return 2;
+    if (s.includes('HẠNG III') || s.includes('HẠNG 3')) return 3;
+    return 1;
+  };
+
+  const orgRank = normalizeRank(contractorCertGrade);
+  const cchnRank = normalizeRank(commanderCchnGrade);
+
+  // Cấp Đặc biệt & Cấp I yêu cầu Hạng I
+  const isGrade1OrSpecial =
+    pGrade === 'CAP_DAC_BIET' ||
+    pGrade.includes('ĐẶC BIỆT') ||
+    pGrade === 'CAP_I' ||
+    (pGrade.includes('CẤP I') && !pGrade.includes('CẤP II') && !pGrade.includes('CẤP III') && !pGrade.includes('CẤP IV'));
+
+  if (isGrade1OrSpecial) {
+    if (orgRank > 1) {
+      const msg = `CHẶN KÝ HỢP ĐỒNG (NĐ 212/2026): Công trình ${projectGrade} bắt buộc Nhà thầu có Chứng chỉ năng lực HẠNG I (Hiện tại: ${contractorCertGrade}).`;
+      return { isValid: false, isQualified: false, reason: msg, message: msg, violationReason: msg };
+    }
+    if (cchnRank > 1) {
+      const msg = `CHẶN KÝ HỢP ĐỒNG (NĐ 212/2026): Công trình ${projectGrade} bắt buộc Chỉ huy trưởng có CCHN HẠNG I (Hiện tại: ${commanderCchnGrade}).`;
+      return { isValid: false, isQualified: false, reason: msg, message: msg, violationReason: msg };
+    }
+  }
+
+  // Cấp II yêu cầu tối thiểu Hạng II
+  const isGrade2 = pGrade === 'CAP_II' || (pGrade.includes('CẤP II') && !pGrade.includes('CẤP III'));
+  if (isGrade2) {
+    if (orgRank > 2 || cchnRank > 2) {
+      const msg = `CHẶN KÝ HỢP ĐỒNG (NĐ 212/2026): Công trình Cấp II yêu cầu Chứng chỉ năng lực & CCHN tối thiểu HẠNG II.`;
+      return { isValid: false, isQualified: false, reason: msg, message: msg, violationReason: msg };
+    }
+  }
+
+  const okMsg = `ĐẠT CHUẨN NĂNG LỰC (NĐ 212/2026): Tổ chức (${contractorCertGrade}) & Chỉ huy trưởng (${commanderCchnGrade}) đáp ứng Công trình ${projectGrade}.`;
+  return {
+    isValid: true,
+    isQualified: true,
+    reason: okMsg,
+    message: okMsg,
+    violationReason: ''
+  };
+}
+
 export * from './permissions';

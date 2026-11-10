@@ -44,6 +44,7 @@ export default function Stage1InitiationView({
   // Initiation inputs
   const [tenDuAn, setTenDuAn] = useState('');
   const [tongMucDauTuInput, setTongMucDauTuInput] = useState<number>(35_000_000_000);
+  const [loaiCongTrinh, setLoaiCongTrinh] = useState<string>('CÔNG TRÌNH GIAO THÔNG');
   const [isSpecial, setIsSpecial] = useState(false);
   const [isSimpleRenovation, setIsSimpleRenovation] = useState(false);
   const [isSpecialArea, setIsSpecialArea] = useState(false); // Vùng đặc biệt khó khăn (< 70 tỷ)
@@ -66,8 +67,8 @@ export default function Stage1InitiationView({
 
   // Real-time Auto-routing engine computation with calculateProjectRouting (NĐ 217/2026/NĐ-CP)
   const routing = useMemo(() => {
-    return PmsService.autoRouteProjectGroup(tongMucDauTuInput, isSpecial, isSimpleRenovation);
-  }, [tongMucDauTuInput, isSpecial, isSimpleRenovation]);
+    return PmsService.autoRouteProjectGroup(tongMucDauTuInput, isSpecial, isSimpleRenovation, isSpecialArea);
+  }, [tongMucDauTuInput, isSpecial, isSimpleRenovation, isSpecialArea]);
 
   const projectRoutingResult = useMemo(() => {
     return calculateProjectRouting(tongMucDauTuInput, isSpecialArea);
@@ -93,22 +94,29 @@ export default function Stage1InitiationView({
 
     const newProjectPayload: Partial<ProjectData> = {
       TEN_DU_AN: tenDuAn,
-      TONG_MUC_DAU_TU_DU_KIEN: safeNumber(tongMucDauTuInput),
+      CHỦ_TRƯƠNG_ID: `CT-2026-${Math.floor(100 + Math.random() * 900)}`,
+      TONG_MUC_DAU_TU: safeNumber(tongMucDauTuInput),
+      DU_TOAN_DAU_TU: Math.round(safeNumber(tongMucDauTuInput) * 0.95),
+      TONG_GIA_TRI_HOP_DONG: 0,
+      LUY_KE_GIAI_NGAN: 0,
       NHOM_DU_AN: routing.group,
       CAP_CONG_TRINH: routing.recommendedGrade,
-      LUONG_XU_LY_PHAP_LY: routing.workflowPath,
+      LOAI_CONG_TRINH: loaiCongTrinh,
+      SO_BUOC_THIET_KE: routing.designStepsCount,
+      IS_SPECIAL_AREA: isSpecialArea,
+      LUONG_PHAP_LY_GDA1: routing.workflowPath,
       CHU_DAU_TU: chuDauTu,
       NGUON_VON: nguonVon,
       BUOC_HIEN_TAI_GDA1: 1,
       GIAI_DOAN_HIEN_TAI: 1,
-      TRANG_THAI: 'KHỞI_TẠO_THÀNH_CÔNG',
+      TRANG_THAI: 'KHỞI_TẠO',
       KHOI_LUONG_HOAN_THANH_PCT: 0,
       CANH_BAO_RED_FLAG: false
     };
 
     const res = PmsHandlers.saveProjectApi(newProjectPayload, smartCaToken);
     if (res.success && res.data) {
-      toast.success(`Khởi tạo thành công Dự án ${res.data.PROJECT_ID}! Đã kích hoạt ${routing.workflowPath}`);
+      toast.success(`Khởi tạo thành công Dự án ${res.data.PROJECT_ID} (Mã QG: ${res.data.NATIONAL_PROJECT_CODE})!`);
       setTenDuAn('');
       const updatedList = PmsService.getProjects();
       setProjects(updatedList);
@@ -221,7 +229,22 @@ export default function Stage1InitiationView({
                 </div>
               </div>
 
-              <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+              <div className="grid grid-cols-1 sm:grid-cols-3 gap-4">
+                <div>
+                  <label className="block text-slate-700 font-bold mb-1">LOẠI CÔNG TRÌNH (NĐ 217/2026)</label>
+                  <select
+                    value={loaiCongTrinh}
+                    onChange={e => setLoaiCongTrinh(e.target.value)}
+                    className="w-full px-3 py-2 border border-slate-300 rounded-xl bg-white text-slate-800 font-semibold outline-none"
+                  >
+                    <option value="CÔNG TRÌNH GIAO THÔNG">Công trình Giao thông</option>
+                    <option value="CÔNG TRÌNH DÂN DỤNG">Công trình Dân dụng</option>
+                    <option value="CÔNG TRÌNH CÔNG NGHIỆP">Công trình Công nghiệp</option>
+                    <option value="CÔNG TRÌNH NN & PTNT">Công trình NN & PTNT</option>
+                    <option value="CÔNG TRÌNH HẠ TẦNG KỸ THUẬT">Công trình Hạ tầng Kỹ thuật</option>
+                  </select>
+                </div>
+
                 <div>
                   <label className="block text-slate-700 font-bold mb-1">NGUỒN VỐN ĐẦU TƯ</label>
                   <select
@@ -279,7 +302,7 @@ export default function Stage1InitiationView({
               {/* SmartCA token field */}
               <div className="pt-2 flex flex-col sm:flex-row justify-between items-start sm:items-center gap-3">
                 <div className="flex items-center gap-1.5 text-[11px] text-emerald-700 font-semibold">
-                  <ShieldCheck className="w-4 h-4" /> Tích hợp Xác thực Chữ ký số SmartCA
+                  <ShieldCheck className="w-4 h-4" /> Tích hợp Xác thực Chữ ký số SmartCA & Cấp Mã Định Danh Quốc Gia (NĐ 212/2026)
                 </div>
 
                 <button
@@ -297,36 +320,43 @@ export default function Stage1InitiationView({
         <div className="bg-slate-900 text-white p-6 rounded-2xl border border-slate-800 shadow-xl space-y-4 flex flex-col justify-between">
           <div className="space-y-3">
             <div className="flex items-center gap-2 text-blue-400 font-bold text-xs">
-              <Cpu className="w-4 h-4" /> AUTO-ROUTING ENGINE
+              <Cpu className="w-4 h-4" /> AUTO-ROUTING ENGINE (NĐ 217/2026/NĐ-CP)
             </div>
             <h4 className="text-base font-extrabold text-white leading-snug">
               CƠ CHẾ PHÂN NHÁNH PHÁP LÝ TỰ ĐỘNG
             </h4>
             <p className="text-[11px] text-slate-400">
-              Căn cứ Luật Xây dựng 135/2025 & TT 34/2026/TT-BXD
+              Căn cứ Luật Xây dựng 135/2025, NĐ 217/2026 & TT 34/2026/TT-BXD
             </p>
 
             <div className="space-y-2 pt-2 text-xs">
-              <div className="bg-slate-800/90 p-3.5 rounded-xl border border-slate-700">
-                <div className="text-[10px] text-slate-400 font-bold uppercase tracking-wider">NHÓM DỰ ÁN & LUỒNG XỬ LÝ</div>
-                <div className="text-emerald-400 font-extrabold text-base mt-1">{routing.group}</div>
+              <div className="bg-slate-800/90 p-3 rounded-xl border border-slate-700 flex justify-between items-center">
+                <div>
+                  <div className="text-[10px] text-slate-400 font-bold uppercase tracking-wider">NHÓM DỰ ÁN</div>
+                  <div className="text-emerald-400 font-extrabold text-base mt-0.5">{routing.group}</div>
+                </div>
+                <span className="px-2.5 py-1 rounded-lg bg-emerald-500/20 text-emerald-300 font-bold text-[11px] border border-emerald-500/30">
+                  Thiết kế {routing.designStepsCount} bước
+                </span>
               </div>
 
-              <div className="bg-slate-800/90 p-3.5 rounded-xl border border-slate-700">
-                <div className="text-[10px] text-slate-400 font-bold uppercase tracking-wider">CẤP CÔNG TRÌNH ĐỀ XUẤT</div>
-                <div className="text-blue-400 font-extrabold text-base mt-1">{routing.recommendedGrade}</div>
+              <div className="bg-slate-800/90 p-3 rounded-xl border border-slate-700 flex justify-between items-center">
+                <div>
+                  <div className="text-[10px] text-slate-400 font-bold uppercase tracking-wider">CẤP & LOẠI CÔNG TRÌNH</div>
+                  <div className="text-blue-400 font-extrabold text-sm mt-0.5">{routing.recommendedGrade} • {loaiCongTrinh}</div>
+                </div>
               </div>
 
-              <div className="bg-slate-800/90 p-3.5 rounded-xl border border-slate-700">
-                <div className="text-[10px] text-slate-400 font-bold uppercase tracking-wider">CƠ QUAN THẨM ĐỊNH / PHÊ DUYỆT</div>
-                <div className="text-amber-300 font-bold text-xs mt-1">{routing.legalBasis}</div>
+              <div className="bg-slate-800/90 p-3 rounded-xl border border-slate-700">
+                <div className="text-[10px] text-slate-400 font-bold uppercase tracking-wider">CƠ QUAN CHUYÊN MÔN VỀ XD THẨM ĐỊNH</div>
+                <div className="text-amber-300 font-bold text-xs mt-1">{routing.appraisalAuthority}</div>
               </div>
             </div>
           </div>
 
           <div className="p-3 bg-blue-950/80 border border-blue-700/60 rounded-xl text-xs text-blue-200 flex items-start gap-2.5">
             <Zap className="w-4 h-4 text-blue-400 shrink-0 mt-0.5" />
-            <span className="font-medium leading-relaxed">Yêu cầu lập và thẩm định: {routing.workflowPath}</span>
+            <span className="font-medium leading-relaxed">{routing.workflowPath}</span>
           </div>
         </div>
       </div>

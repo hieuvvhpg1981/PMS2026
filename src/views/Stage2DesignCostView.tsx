@@ -1,8 +1,8 @@
 import React, { useState, useEffect } from 'react';
-import { PmsService, ProjectData, BoqItem, GanttTaskItem, InternalReviewRecord } from '../pms/T2_Services';
+import { PmsService, ProjectData, BoqItem, GanttTaskItem, InternalReviewRecord, ConstructionPermitRecord } from '../pms/T2_Services';
 import { PmsHandlers } from '../pms/T3_Handlers';
 import { DesignType, ApprovalStatus, STAGE2_DOCUMENT_TYPES } from '../pms/T0_Config';
-import { formatVND, safeNumber, safeString, checkEstimateExceedsTMDT, generateExcelTemplate, updateBoqRow, canEditProject } from '../pms/T1_Utils';
+import { formatVND, safeNumber, safeString, checkEstimateExceedsTMDT, generateExcelTemplate, updateBoqRow, canEditProject, evaluateCostOverrunRisk206 } from '../pms/T1_Utils';
 import { UserProfile } from '../pms/T2_Services';
 import Stage2DocumentUploader from '../components/Stage2DocumentUploader';
 import ExcelDragDropUploader from '../components/ExcelDragDropUploader';
@@ -55,12 +55,17 @@ export default function Stage2DesignCostView({ currentUser }: { currentUser?: Us
   const [newItemPrice, setNewItemPrice] = useState<number>(3200000);
   const [newItemCategory, setNewItemCategory] = useState<'XÂY_LẮP' | 'THIẾT_BỊ' | 'QUẢN_LÝ' | 'TƯ_VẤN' | 'KHIÊN_TỔN_DỰ_PHÒNG'>('XÂY_LẮP');
 
-  // Tab 3 state: Approval & Review
+  // Tab 3 state: Approval, Review & Construction Permit Gate (NĐ 217/2026)
   const [reviewerDept, setReviewerDept] = useState<string>('Phòng Kế hoạch - Tài chính');
   const [reviewerName, setReviewerName] = useState<string>('Phạm Minh Đức (Trưởng phòng)');
   const [reviewStatus, setReviewStatus] = useState<ApprovalStatus>(ApprovalStatus.APPROVED);
   const [reviewComments, setReviewComments] = useState<string>('Dự toán BOQ và bản vẽ thiết kế đạt tiêu chuẩn chất lượng.');
   const [smartCaToken, setSmartCaToken] = useState<string>('SMARTCA-TOKEN-REVIEWER-2026');
+
+  const [permitStatus, setPermitStatus] = useState<'THUỘC_DIỆN_MIỄN_GPXD' | 'ĐANG_XIN_CẤP_PHÉP_XD' | 'ĐÃ_CẤP_GIẤY_PHÉP_XD'>('THUỘC_DIỆN_MIỄN_GPXD');
+  const [permitNo, setPermitNo] = useState<string>('GPXD-2026-0089/SXD');
+  const [appraisalNoticeNo, setAppraisalNoticeNo] = useState<string>('158/CV-CQLHĐXD-BXD');
+  const [exemptionLegalBasis, setExemptionLegalBasis] = useState<string>('Công trình thuộc dự án đầu tư công đã được CQCM về XD thẩm định Thiết kế triển khai sau TKCS (NĐ 217/2026/NĐ-CP)');
 
   useEffect(() => {
     const list = PmsService.getProjects();
@@ -78,6 +83,12 @@ export default function Stage2DesignCostView({ currentUser }: { currentUser?: Us
       setConsultingMode(currentProject.TU_THUC_HIEN_HAY_THUE_TU_VAN || 'THUÊ_TƯ_VẤN');
       setConsultantName(currentProject.TEN_DON_VI_TU_VAN || '');
       setBoqItems(currentProject.BOQ_ITEMS_GDA2 || []);
+      if (currentProject.CONSTRUCTION_PERMIT_GDA2) {
+        setPermitStatus(currentProject.CONSTRUCTION_PERMIT_GDA2.permitStatus);
+        setPermitNo(currentProject.CONSTRUCTION_PERMIT_GDA2.permitNo || 'GPXD-2026-0089/SXD');
+        setAppraisalNoticeNo(currentProject.CONSTRUCTION_PERMIT_GDA2.appraisalNoticeNo || '158/CV-CQLHĐXD-BXD');
+        setExemptionLegalBasis(currentProject.CONSTRUCTION_PERMIT_GDA2.exemptionLegalBasis || '');
+      }
       setGanttTasks(currentProject.GANTT_TASKS_GDA2 || [
         { taskId: 'TSK-01', taskName: '1. Khảo sát địa chất & Thiết kế bản vẽ thi công', assignedDept: 'Phòng Kỹ thuật & TEDI', startDate: '2026-02-01', endDate: '2026-03-15', progressPct: 100, budgetAllocated: 15000000000 },
         { taskId: 'TSK-02', taskName: '2. Đo bóc khối lượng & Lập dự toán BOQ chi tiết', assignedDept: 'Phòng Kế hoạch Tổng hợp', startDate: '2026-03-16', endDate: '2026-04-05', progressPct: 100, budgetAllocated: 5000000000 },
@@ -86,9 +97,17 @@ export default function Stage2DesignCostView({ currentUser }: { currentUser?: Us
     }
   }, [selectedProjectId]);
 
-  const boqSummary = PmsService.calculateBoqSummary(boqItems);
+  const gpmbTotalCost = (currentProject?.GPMB_ITEMS_GDA3 || []).reduce((acc, g) => acc + safeNumber(g.totalCompensation), 0);
+  const boqSummary = PmsService.calculateBoqSummary(boqItems, gpmbTotalCost);
   const tmdtApproved = currentProject ? currentProject.TONG_MUC_DAU_TU : 0;
   const crossCheck = checkEstimateExceedsTMDT(boqSummary.tongDuToanBoq, tmdtApproved);
+  const overrunRisk206 = evaluateCostOverrunRisk206(
+    tmdtApproved,
+    currentProject?.TONG_GIA_TRI_HOP_DONG || boqSummary.tongDuToanBoq,
+    0,
+    gpmbTotalCost,
+    boqSummary.chiPhiDuPhong
+  );
 
   const refreshProjectData = () => {
     const list = PmsService.getProjects();
@@ -772,27 +791,56 @@ export default function Stage2DesignCostView({ currentUser }: { currentUser?: Us
               </button>
             </div>
 
-            {/* Total BOQ Cost Summary Box */}
+            {/* Total BOQ Cost Summary Box (7 Khoản mục Chi phí theo NĐ 206/2026/NĐ-CP) */}
             <div className="bg-blue-50/50 p-4 rounded-xl border border-blue-200 text-xs space-y-2">
-              <div className="flex justify-between font-bold text-slate-800 border-b border-blue-200 pb-2">
-                <span>1. Chi phí Xây lắp trực tiếp:</span>
+              <div className="text-[11px] font-black text-blue-900 uppercase tracking-wider pb-1 border-b border-blue-200">
+                TỔNG HỢP DỰ TOÁN 7 KHOẢN MỤC CHI PHÍ (NGHỊ ĐỊNH 206/2026/NĐ-CP & TT 38/2026/TT-BXD)
+              </div>
+              <div className="flex justify-between font-semibold text-slate-700 border-b border-blue-100 pb-1.5">
+                <span>1. Chi phí bồi thường, hỗ trợ & tái định cư (G_GPMB):</span>
+                <span className="font-mono">{formatVND(boqSummary.chiPhiGpmb)}</span>
+              </div>
+              <div className="flex justify-between font-bold text-slate-800 border-b border-blue-100 pb-1.5">
+                <span>2. Chi phí Xây dựng trực tiếp (G_XD):</span>
                 <span className="font-mono text-sm">{formatVND(boqSummary.chiPhiXayLap)}</span>
               </div>
-              <div className="flex justify-between font-bold text-slate-800 border-b border-blue-200 pb-2">
-                <span>2. Chi phí Thiết bị trực tiếp:</span>
+              <div className="flex justify-between font-bold text-slate-800 border-b border-blue-100 pb-1.5">
+                <span>3. Chi phí Thiết bị công nghệ (G_TB):</span>
                 <span className="font-mono text-sm">{formatVND(boqSummary.chiPhiThietBi)}</span>
               </div>
-              <div className="flex justify-between text-slate-700">
-                <span>3. Chi phí Quản lý dự án + Tư vấn + Khác (TT 38/2026):</span>
-                <span className="font-mono">{formatVND(boqSummary.chiPhiQuanLyDuAn + boqSummary.chiPhiTuVan + boqSummary.chiPhiKhac)}</span>
+              <div className="flex justify-between text-slate-700 border-b border-blue-100 pb-1.5">
+                <span>4. Chi phí Quản lý dự án (G_QLDA - Định mức 2.45%):</span>
+                <span className="font-mono">{formatVND(boqSummary.chiPhiQuanLyDuAn)}</span>
+              </div>
+              <div className="flex justify-between text-slate-700 border-b border-blue-100 pb-1.5">
+                <span>5. Chi phí Tư vấn đầu tư xây dựng (G_TV - Định mức 4.15%):</span>
+                <span className="font-mono">{formatVND(boqSummary.chiPhiTuVan)}</span>
+              </div>
+              <div className="flex justify-between text-slate-700 border-b border-blue-100 pb-1.5">
+                <span>6. Chi phí Khác & Hạng mục chung (G_K - 1.80%):</span>
+                <span className="font-mono">{formatVND(boqSummary.chiPhiKhac)}</span>
               </div>
               <div className="flex justify-between text-slate-700">
-                <span>4. Chi phí Dự phòng trượt giá & phát sinh (5%):</span>
-                <span className="font-mono">{formatVND(boqSummary.chiPhiDuPhong)}</span>
+                <span>7. Chi phí Dự phòng (G_DP1 phát sinh KL: {formatVND(boqSummary.chiPhiDuPhongPhatSinh)} + G_DP2 trượt giá: {formatVND(boqSummary.chiPhiDuPhongTruotGia)}):</span>
+                <span className="font-mono font-bold">{formatVND(boqSummary.chiPhiDuPhong)}</span>
               </div>
               <div className="flex justify-between text-sm font-extrabold text-blue-900 pt-2 border-t-2 border-blue-300">
-                <span>TỔNG DỰ TOÁN BOQ TOÀN BỘ DỰ ÁN:</span>
+                <span>TỔNG DỰ TOÁN XÂY DỰNG CÔNG TRÌNH (7 KHOẢN MỤC NĐ 206/2026):</span>
                 <span className="font-mono text-base">{formatVND(boqSummary.tongDuToanBoq)}</span>
+              </div>
+
+              {/* 3-Tier Early Warning Guardrail (NĐ 206/2026) */}
+              <div className={`mt-2 p-3 rounded-xl border font-bold text-xs flex items-center justify-between ${
+                overrunRisk206.level === 'HARD_BLOCK_RED'
+                  ? 'bg-red-100 border-red-400 text-red-900'
+                  : overrunRisk206.level === 'HIGH_ORANGE'
+                  ? 'bg-amber-100 border-amber-400 text-amber-900'
+                  : 'bg-emerald-100 border-emerald-400 text-emerald-900'
+              }`}>
+                <span>{overrunRisk206.message}</span>
+                <span className="font-mono px-2 py-0.5 rounded bg-white/80 text-[11px]">
+                  Sử dụng TMĐT: {overrunRisk206.tmdtUsagePct}%
+                </span>
               </div>
             </div>
           </div>
@@ -809,7 +857,7 @@ export default function Stage2DesignCostView({ currentUser }: { currentUser?: Us
         </div>
       )}
 
-      {/* TAB 3: THẨM ĐỊNH NỘI BỘ & PHÊ DUYỆT (Hội đồng Thẩm định) */}
+      {/* TAB 3: THẨM ĐỊNH, PHÊ DUYỆT & CẤP GIẤY PHÉP XÂY DỰNG (NĐ 217/2026/NĐ-CP) */}
       {activeTab === 'approval' && currentProject && (
         <div className="space-y-6">
           <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
@@ -888,29 +936,98 @@ export default function Stage2DesignCostView({ currentUser }: { currentUser?: Us
               </div>
             </div>
 
-            {/* Review Log History List */}
+            {/* Construction Permit / Exemption Gate (NĐ 217/2026/NĐ-CP) */}
             <div className="bg-white p-6 rounded-2xl border border-slate-200 shadow-sm space-y-4">
-              <h3 className="text-base font-bold text-slate-900 border-b border-slate-100 pb-3">
-                LỊCH SỬ THẨM ĐỊNH NỘI BỘ ĐÃ LƯU VẾT
-              </h3>
+              <div className="border-b border-slate-100 pb-3 flex items-center justify-between">
+                <h3 className="text-base font-bold text-slate-900 flex items-center gap-2">
+                  <ShieldCheck className="w-5 h-5 text-emerald-600" />
+                  CHỐT CHẶN GIẤY PHÉP XÂY DỰNG / MIỄN GPXD (NĐ 217/2026)
+                </h3>
+                <span className="px-2.5 py-0.5 rounded-full bg-emerald-100 text-emerald-800 text-[10px] font-extrabold">
+                  Điều kiện Khởi công
+                </span>
+              </div>
 
-              <div className="space-y-3">
-                {currentProject.REVIEW_LOGS_GDA2?.map(log => (
-                  <div key={log.reviewId} className="p-3.5 bg-slate-50 rounded-xl border border-slate-200 text-xs space-y-1">
-                    <div className="flex justify-between items-center">
-                      <span className="font-bold text-slate-900">{log.reviewerDept}</span>
-                      <span className={`px-2 py-0.5 rounded font-bold ${log.status === ApprovalStatus.APPROVED ? 'bg-emerald-100 text-emerald-800' : log.status === ApprovalStatus.REJECTED ? 'bg-red-100 text-red-800' : 'bg-amber-100 text-amber-800'}`}>
-                        {log.status}
-                      </span>
-                    </div>
-                    <div className="text-slate-600">Người thẩm định: {log.reviewerName} ({log.reviewDate})</div>
-                    <p className="text-slate-700 italic pt-1 border-t border-slate-200">"{log.comments}"</p>
+              <div className="space-y-3 text-xs">
+                <div>
+                  <label className="block font-bold text-slate-700 uppercase mb-1">Hình Thức Quản Lý Cấp Phép Xây Dựng</label>
+                  <select
+                    value={permitStatus}
+                    onChange={e => setPermitStatus(e.target.value as any)}
+                    className="w-full px-3.5 py-2 border border-slate-300 rounded-xl bg-white font-bold text-emerald-900 outline-none"
+                  >
+                    <option value="THUỘC_DIỆN_MIỄN_GPXD">THUỘC DIỆN MIỄN GIẤY PHÉP XÂY DỰNG (Khoản 2 Điều 89 Luật XD & NĐ 217/2026)</option>
+                    <option value="ĐÃ_CẤP_GIẤY_PHÉP_XD">ĐÃ ĐƯỢC CẤP GIẤY PHÉP XÂY DỰNG HỢP LỆ</option>
+                    <option value="ĐANG_XIN_CẤP_PHÉP_XD">ĐANG TRÌNH HỒ SƠ XIN CẤP GIẤY PHÉP XÂY DỰNG</option>
+                  </select>
+                </div>
+
+                <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
+                  <div>
+                    <label className="block font-bold text-slate-700 mb-1">Số Văn Bản Thông Báo KQ Thẩm Định CQCM XD</label>
+                    <input
+                      type="text"
+                      value={appraisalNoticeNo}
+                      onChange={e => setAppraisalNoticeNo(e.target.value)}
+                      className="w-full px-3 py-2 border border-slate-300 rounded-xl font-mono font-bold text-blue-800"
+                    />
                   </div>
-                ))}
+                  <div>
+                    <label className="block font-bold text-slate-700 mb-1">Số Giấy Phép XD (Nếu thuộc diện cấp phép)</label>
+                    <input
+                      type="text"
+                      value={permitNo}
+                      onChange={e => setPermitNo(e.target.value)}
+                      disabled={permitStatus === 'THUỘC_DIỆN_MIỄN_GPXD'}
+                      className="w-full px-3 py-2 border border-slate-300 rounded-xl font-mono disabled:bg-slate-100"
+                    />
+                  </div>
+                </div>
 
-                {(!currentProject.REVIEW_LOGS_GDA2 || currentProject.REVIEW_LOGS_GDA2.length === 0) && (
-                  <div className="text-center py-8 text-xs text-slate-400">Chưa có kết quả thẩm định nào.</div>
-                )}
+                <div>
+                  <label className="block font-bold text-slate-700 mb-1">Căn Cứ Pháp Lý Miễn GPXD / Ghi Chú Cấp Phép</label>
+                  <textarea
+                    rows={2}
+                    value={exemptionLegalBasis}
+                    onChange={e => setExemptionLegalBasis(e.target.value)}
+                    className="w-full px-3 py-2 border border-slate-300 rounded-xl bg-slate-50"
+                  />
+                </div>
+
+                <button
+                  onClick={() => {
+                    const res = PmsHandlers.stage2PermitApi(currentProject.PROJECT_ID, {
+                      permitStatus,
+                      permitNo: permitStatus === 'ĐÃ_CẤP_GIẤY_PHÉP_XD' ? permitNo : undefined,
+                      appraisalNoticeNo,
+                      exemptionLegalBasis,
+                      issueDate: new Date().toISOString().split('T')[0],
+                      issuedBy: 'Cơ quan chuyên môn về Xây dựng'
+                    });
+                    if (res.success) {
+                      toast.success(res.message);
+                      refreshProjectData();
+                    } else {
+                      toast.error(res.message);
+                    }
+                  }}
+                  className="w-full bg-emerald-600 hover:bg-emerald-700 text-white font-bold py-2.5 rounded-xl transition-all shadow-sm flex items-center justify-center gap-2"
+                >
+                  <CheckCircle className="w-4 h-4" /> Xác Nhận Hồ Sơ Cấp Phép / Miễn GPXD (NĐ 217/2026)
+                </button>
+
+                {/* Review Log History List */}
+                <div className="pt-3 border-t border-slate-200 space-y-2">
+                  <div className="font-bold text-slate-800 uppercase text-[11px]">Lịch sử Thẩm định đã lưu vết:</div>
+                  {currentProject.REVIEW_LOGS_GDA2?.map(log => (
+                    <div key={log.reviewId} className="p-2.5 bg-slate-50 rounded-xl border border-slate-200 text-xs flex justify-between items-center">
+                      <div>
+                        <span className="font-bold text-slate-900">{log.reviewerDept}</span> • <span className="text-slate-600">{log.reviewerName}</span>
+                      </div>
+                      <span className="px-2 py-0.5 rounded font-bold bg-emerald-100 text-emerald-800 text-[10px]">{log.status}</span>
+                    </div>
+                  ))}
+                </div>
               </div>
             </div>
           </div>

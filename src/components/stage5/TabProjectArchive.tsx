@@ -64,15 +64,37 @@ export default function TabProjectArchive({
   const [newChuKy, setNewChuKy] = useState<number>(6);
   const [newDonVi, setNewDonVi] = useState('Công ty Cổ phần Quản lý Đường bộ');
   const [newNgay, setNewNgay] = useState('2026-12-01');
+  const [newCostVnd, setNewCostVnd] = useState<number>(450000000);
+  const [stateNoticeNo, setStateNoticeNo] = useState<string>(
+    currentProject.STATE_ACCEPTANCE_NOTICE_NO || 'TB-388/GĐ-BXD (Cục Giám định Nhà nước về CLCTXD)'
+  );
 
   const handleDownloadZip = () => {
     toast.success(`Đã bắt đầu nén và tải xuống tệp lưu trữ số hóa: ${zipInfo.archiveName} (${zipInfo.totalSizeMB} MB)`);
     setShowZipModal(false);
   };
 
+  const handleSaveStateAcceptanceNotice = () => {
+    if (!stateNoticeNo.trim()) {
+      toast.error('Vui lòng nhập Số Văn bản thông báo chấp thuận kết quả nghiệm thu của Cơ quan chuyên môn về XD (NĐ 207/2026)!');
+      return;
+    }
+    onUpdateProject({
+      ...currentProject,
+      STATE_ACCEPTANCE_NOTICE_NO: stateNoticeNo.trim(),
+      LIC_BAO_TRI: maintenanceList
+    });
+    toast.success(`Đã lưu Văn bản chấp thuận nghiệm thu [${stateNoticeNo}] theo NĐ 207/2026/NĐ-CP!`);
+  };
+
   const handleLockTreasury = () => {
+    if (!stateNoticeNo.trim()) {
+      toast.error('CHỐT CHẶN NĐ 207/2026: Chưa có Văn bản thông báo chấp thuận kết quả nghiệm thu của Cơ quan chuyên môn về XD! Không thể tất toán & đưa công trình vào khai thác.');
+      return;
+    }
     const updated: ProjectData = {
       ...currentProject,
+      STATE_ACCEPTANCE_NOTICE_NO: stateNoticeNo.trim(),
       TRANG_THAI: 'QUYẾT_TOÁN_HOÀN_TẤT',
       GIAI_DOAN_HIEN_TAI: 5,
       KHOI_LUONG_HOAN_THANH_PCT: 100
@@ -95,16 +117,19 @@ export default function TabProjectArchive({
       CHU_KY_THANG: newChuKy,
       NGAY_BAO_TRI_NEXT: newNgay,
       DON_VI_THUC_HIEN: newDonVi,
-      TRANG_THAI: 'BÌNH_THƯỜNG'
+      TRANG_THAI: 'BÌNH_THƯỜNG',
+      ESTIMATED_MAINTENANCE_COST_VND: newCostVnd,
+      MAINTENANCE_PROCEDURE_DOC: 'QT-BT-2026/TT40-BXD'
     };
 
     const updatedList = [newItem, ...maintenanceList];
     onUpdateProject({
       ...currentProject,
-      LIC_BAO_TRI: updatedList
+      LIC_BAO_TRI: updatedList,
+      STATE_ACCEPTANCE_NOTICE_NO: stateNoticeNo
     });
 
-    toast.success('Đã thêm hạng mục bảo trì định kỳ');
+    toast.success('Đã thêm hạng mục bảo trì định kỳ theo NĐ 207/2026 & TT 40/2026/TT-BXD');
     setShowAddMaintenanceModal(false);
     setNewHangMuc('');
   };
@@ -138,6 +163,35 @@ export default function TabProjectArchive({
 
   return (
     <div className="space-y-6">
+      {/* NĐ 207/2026 Gate: Văn bản chấp thuận kết quả nghiệm thu của Cơ quan chuyên môn về XD */}
+      <div className="bg-emerald-50/70 p-5 rounded-2xl border border-emerald-200 shadow-xs flex flex-col md:flex-row justify-between items-start md:items-center gap-4">
+        <div className="space-y-1">
+          <div className="text-xs font-extrabold text-emerald-900 uppercase flex items-center gap-1.5">
+            <ShieldCheck className="w-4 h-4 text-emerald-600" />
+            CHỐT CHẶN NGHIỆM THU ĐƯA CÔNG TRÌNH VÀO KHAI THÁC SỬ DỤNG (ĐIỀU 24 NĐ 207/2026/NĐ-CP)
+          </div>
+          <p className="text-[11px] text-emerald-800">
+            Số Văn bản thông báo chấp thuận kết quả nghiệm thu của Hội đồng Kiểm tra Nhà nước / Cục Giám định / Sở Xây dựng:
+          </p>
+        </div>
+        <div className="flex items-center gap-2 w-full md:w-auto">
+          <input
+            type="text"
+            value={stateNoticeNo}
+            onChange={e => setStateNoticeNo(e.target.value)}
+            placeholder="Nhập số VB chấp thuận nghiệm thu..."
+            className="flex-1 md:w-80 px-3 py-2 text-xs font-mono font-bold bg-white border border-emerald-300 rounded-xl text-emerald-900"
+          />
+          <button
+            type="button"
+            onClick={handleSaveStateAcceptanceNotice}
+            className="px-4 py-2 bg-emerald-600 hover:bg-emerald-700 text-white text-xs font-bold rounded-xl transition-all shrink-0"
+          >
+            Xác Nhận VB Nghiệm Thu
+          </button>
+        </div>
+      </div>
+
       {/* Top 2 Cards: ZIP Archiver & Treasury Lock */}
       <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
         {/* Digital Handover ZIP Archive Card */}
@@ -189,16 +243,16 @@ export default function TabProjectArchive({
         </div>
       </div>
 
-      {/* Maintenance Schedule Table (Circular 40/2026/TT-BXD) */}
+      {/* Maintenance Schedule Table (NĐ 207/2026/NĐ-CP & Circular 40/2026/TT-BXD) */}
       <div className="bg-white p-6 rounded-2xl border border-slate-200 shadow-sm space-y-4">
         <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-3 border-b border-slate-100 pb-3">
           <div>
             <h3 className="text-base font-bold text-slate-900 flex items-center gap-2">
               <CalendarCheck className="w-5 h-5 text-amber-600" />
-              QUY TRÌNH & LỊCH BẢO TRÌ CÔNG TRÌNH ĐỊNH KỲ (TT 40/2026/TT-BXD)
+              QUY TRÌNH & KẾ HOẠCH BẢO TRÌ CÔNG TRÌNH ĐỊNH KỲ (NĐ 207/2026/NĐ-CP & TT 40/2026/TT-BXD)
             </h3>
             <p className="text-xs text-slate-500 mt-0.5">
-              Tự động cảnh báo đếm ngược thời gian hết hạn bảo hành & đợt kiểm định kỹ thuật định kỳ
+              Tự động cảnh báo đếm ngược thời gian hết hạn bảo hành, kinh phí bảo trì dự kiến & đợt kiểm định kỹ thuật định kỳ
             </p>
           </div>
 
@@ -214,12 +268,13 @@ export default function TabProjectArchive({
           <table className="w-full text-left text-xs border-collapse">
             <thead>
               <tr className="bg-slate-100 border-b border-slate-200 text-slate-700 font-bold uppercase tracking-wider">
-                <th className="p-3.5 min-w-[280px]">Hạng Mục Bảo Trì / Kiểm Định</th>
-                <th className="p-3.5 min-w-[120px]">Chu Kỳ (Tháng)</th>
-                <th className="p-3.5 min-w-[140px]">Đợt Kiểm Tra Tiếp theo</th>
-                <th className="p-3.5 min-w-[220px]">Đơn Vị Thực Hiện Bảo Trì</th>
-                <th className="p-3.5 min-w-[130px]">Trạng Thái</th>
-                <th className="p-3.5 text-center min-w-[140px]">Thao Tác</th>
+                <th className="p-3.5 min-w-[260px]">Hạng Mục Bảo Trì / Kiểm Định</th>
+                <th className="p-3.5 min-w-[110px]">Chu Kỳ (Tháng)</th>
+                <th className="p-3.5 min-w-[130px]">Đợt Kiểm Tra Tới</th>
+                <th className="p-3.5 min-w-[140px] text-right">Kinh Phí Dự Kiến</th>
+                <th className="p-3.5 min-w-[200px]">Đơn Vị Thực Hiện</th>
+                <th className="p-3.5 min-w-[120px]">Trạng Thái</th>
+                <th className="p-3.5 text-center min-w-[130px]">Thao Tác</th>
               </tr>
             </thead>
             <tbody className="divide-y divide-slate-200 bg-white">
@@ -228,6 +283,9 @@ export default function TabProjectArchive({
                   <td className="p-3.5 font-bold text-slate-900">{item.HANG_MUC_BAO_TRI}</td>
                   <td className="p-3.5 font-mono text-slate-700 font-bold">{item.CHU_KY_THANG} tháng/lần</td>
                   <td className="p-3.5 font-mono text-amber-700 font-bold">{formatDateVN(item.NGAY_BAO_TRI_NEXT)}</td>
+                  <td className="p-3.5 font-mono font-bold text-right text-blue-800">
+                    {(item.ESTIMATED_MAINTENANCE_COST_VND || 450000000).toLocaleString('vi-VN')} đ
+                  </td>
                   <td className="p-3.5 text-slate-600 font-medium">{item.DON_VI_THUC_HIEN}</td>
                   <td className="p-3.5">
                     {item.TRANG_THAI === 'ĐẾN_HẠN' || item.TRANG_THAI === 'QUÁ_HẠN' ? (

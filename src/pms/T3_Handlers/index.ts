@@ -3,8 +3,9 @@
  * Điều phối API Dispatchers cho Giai đoạn 1, 2, 3 và Giai đoạn 4 (Thi công, Giám sát & Thanh toán theo Gói thầu).
  */
 
-import { PmsService, ProjectData, BoqItem, GanttTaskItem, SiteClearanceRecord, ProcurementPackageRecord, ContractManagementRecord, ConsultingProductRecord, ConstructionWorkRecord } from '../T2_Services';
-import { DesignType, ApprovalStatus } from '../T0_Config';
+import { PmsService, ProjectData, BoqItem, GanttTaskItem, SiteClearanceRecord, ProcurementPackageRecord, ContractManagementRecord, ConsultingProductRecord, ConstructionWorkRecord, ConstructionPermitRecord, MaterialSubmittalRecord, ELogbookItem, MaintenanceScheduleItem } from '../T2_Services';
+import { DesignType, ApprovalStatus, STAGE1_DOCUMENT_TYPES } from '../T0_Config';
+import { validateRequiredAttachments } from '../T1_Utils';
 
 export const PmsHandlers = {
   getProjectsApi(): { success: boolean; data: ProjectData[] } {
@@ -16,12 +17,28 @@ export const PmsHandlers = {
     }
   },
 
-  saveProjectApi(project: ProjectData): { success: boolean; data?: ProjectData; message: string } {
+  saveProjectApi(project: Partial<ProjectData>, _smartCaToken?: string): { success: boolean; data?: ProjectData; message: string } {
     try {
-      const saved = PmsService.saveProject(project);
-      return { success: true, data: saved, message: `Đã lưu dự án ${saved.PROJECT_ID} thành công!` };
+      const saved = PmsService.saveProject(project as ProjectData);
+      return { success: true, data: saved, message: `Đã lưu dự án ${saved.PROJECT_ID} (${saved.NATIONAL_PROJECT_CODE}) thành công!` };
     } catch (err: any) {
       return { success: false, message: `Lỗi lưu dự án: ${err?.message}` };
+    }
+  },
+
+  validateStepProgressionApi(projectId: string, stepId: number): { success: boolean; data?: { canProgress: boolean; missingDocs: string[] }; message: string } {
+    try {
+      const project = PmsService.getProjectById(projectId);
+      if (!project) return { success: false, message: `Không tìm thấy dự án ${projectId}` };
+      const uploaded = project.DOCUMENT_MATRIX_GDA1 || [];
+      const res = validateRequiredAttachments(stepId, STAGE1_DOCUMENT_TYPES as any, uploaded);
+      return {
+        success: res.canProgress,
+        data: { canProgress: res.canProgress, missingDocs: res.missingDocNames },
+        message: res.message
+      };
+    } catch (err: any) {
+      return { success: false, message: `Lỗi kiểm tra hồ sơ: ${err?.message}` };
     }
   },
 
@@ -252,6 +269,80 @@ export const PmsHandlers = {
       return { success: true, data: doc, message: `Đã tải lên tài liệu GĐ 3 [${params.docTypeName}] thành công!` };
     } catch (err: any) {
       return { success: false, message: `Lỗi upload tài liệu GĐ 3: ${err?.message}` };
+    }
+  },
+
+  /**
+   * API NĐ 217/2026: LƯU THÔNG TIN CẤP GIẤY PHÉP XÂY DỰNG / MIỄN GPXD
+   */
+  stage2PermitApi(projectId: string, permit: ConstructionPermitRecord): { success: boolean; message: string } {
+    try {
+      PmsService.saveConstructionPermit(projectId, permit);
+      return {
+        success: true,
+        message: `Đã lưu thông tin Cấp phép Xây dựng (NĐ 217/2026) [${permit.permitStatus}] thành công!`
+      };
+    } catch (err: any) {
+      return { success: false, message: `Lỗi lưu GPXD: ${err?.message}` };
+    }
+  },
+
+  /**
+   * API NĐ 209/2026: LƯU KIỂM SOÁT VẬT LIỆU XÂY DỰNG ĐẦU VÀO & HỢP QUY QCVN
+   */
+  stage4MaterialSubmittalsApi(projectId: string, materials: MaterialSubmittalRecord[]): { success: boolean; message: string } {
+    try {
+      PmsService.saveMaterialSubmittals(projectId, materials);
+      return {
+        success: true,
+        message: `Đã lưu hồ sơ Kiểm soát & Hợp quy VLXD đầu vào (NĐ 209/2026) (${materials.length} lô vật tư)!`
+      };
+    } catch (err: any) {
+      return { success: false, message: `Lỗi lưu hồ sơ VLXD: ${err?.message}` };
+    }
+  },
+
+  /**
+   * API NĐ 207/2026: LƯU NHẬT KÝ THI CÔNG ĐIỆN TỬ KÝ SỐ ĐỐI XỨNG 2 BÊN
+   */
+  stage4ELogbookApi(projectId: string, logs: ELogbookItem[]): { success: boolean; message: string } {
+    try {
+      PmsService.saveELogbookEntries(projectId, logs);
+      return {
+        success: true,
+        message: `Đã ghi nhận & ký số Nhật ký thi công điện tử (NĐ 207/2026 & TT 41/2026) thành công!`
+      };
+    } catch (err: any) {
+      return { success: false, message: `Lỗi lưu nhật ký thi công: ${err?.message}` };
+    }
+  },
+
+  /**
+   * API NĐ 207/2026: LƯU QUY TRÌNH BẢO TRÌ & THÔNG BÁO KIỂM TRA CÔNG TÁC NGHIỆM THU
+   */
+  stage5MaintenanceApi(projectId: string, items: MaintenanceScheduleItem[], stateAcceptanceNoticeNo?: string): { success: boolean; message: string } {
+    try {
+      PmsService.saveMaintenanceSchedule(projectId, items, stateAcceptanceNoticeNo);
+      return {
+        success: true,
+        message: `Đã cập nhật Kế hoạch Bảo trì & Văn bản nghiệm thu Nhà nước (NĐ 207/2026)!`
+      };
+    } catch (err: any) {
+      return { success: false, message: `Lỗi lưu kế hoạch bảo trì: ${err?.message}` };
+    }
+  },
+
+  /**
+   * API NĐ 212/2026 & TT 39/2026: XUẤT & ĐỒNG BỘ DỮ LIỆU QUỐC GIA BỘ XÂY DỰNG
+   */
+  nationalDbExportApi(): { success: boolean; data: any } {
+    try {
+      return {
+        success: true,
+        data: PmsService.exportNationalDatabaseSchema212()
+      };
+    } catch {
+      return { success: false, data: {} };
     }
   }
 };

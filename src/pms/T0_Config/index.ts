@@ -19,10 +19,11 @@ export const PMS_CONFIG = {
     LUAT_XAY_DUNG: 'Luật Xây dựng số 135/2025/QH15',
     LUAT_DAU_THAU: 'Luật Đấu thầu số 22/2023/QH15 & NĐ 212/2026/NĐ-CP',
     NGHI_DINH_206: 'Nghị định 206/2026/NĐ-CP (Quản lý chi phí đầu tư xây dựng)',
-    NGHI_DINH_207: 'Nghị định 207/2026/NĐ-CP (Quản lý chất lượng & Thi công)',
+    NGHI_DINH_207: 'Nghị định 207/2026/NĐ-CP (Quản lý chất lượng, thi công & bảo trì)',
+    NGHI_DINH_209: 'Nghị định 209/2026/NĐ-CP (Quản lý vật liệu xây dựng & Hợp quy QCVN)',
     NGHI_DINH_210: 'Nghị định 210/2026/NĐ-CP (Hợp đồng xây dựng mẫu & Phụ lục)',
-    NGHI_DINH_212: 'Nghị định 212/2026/NĐ-CP (Đấu thầu dự án công)',
-    NGHI_DINH_217: 'Nghị định 217/2026/NĐ-CP (Thẩm định & Khởi tạo dự án)',
+    NGHI_DINH_212: 'Nghị định 212/2026/NĐ-CP (Điều kiện năng lực & CSDL Quốc gia)',
+    NGHI_DINH_217: 'Nghị định 217/2026/NĐ-CP (Quản lý hoạt động xây dựng & Cấp phép)',
     NGHI_DINH_193: 'Nghị định 193/2026/NĐ-CP (Quyết toán vốn đầu tư công)',
     THONG_TU_34: 'Thông tư 34/2026/TT-BXD (Phân cấp công trình xây dựng)',
     THONG_TU_38: 'Thông tư 38/2026/TT-BXD (Hệ thống định mức & Giá xây dựng)',
@@ -150,6 +151,27 @@ export enum ConstructionGrade {
   CAP_IV = 'CAP_IV'
 }
 
+export enum ConstructionType {
+  DAN_DUNG = 'CÔNG TRÌNH DÂN DỤNG',
+  CONG_NGHIEP = 'CÔNG TRÌNH CÔNG NGHIỆP',
+  GIAO_THONG = 'CÔNG TRÌNH GIAO THÔNG',
+  NONG_NGHIEP_PTNT = 'CÔNG TRÌNH NN & PTNT',
+  HA_TANG_KY_THUAT = 'CÔNG TRÌNH HẠ TẦNG KỸ THUẬT',
+  QUOC_PHONG_AN_NINH = 'CÔNG TRÌNH QUỐC PHÒNG - AN NINH'
+}
+
+export enum PermitStatus {
+  THUOC_DIEN_MIEN_GPXD = 'THUỘC_DIỆN_MIỄN_GPXD',
+  DANG_XIN_CAP_PHEP = 'ĐANG_XIN_CẤP_PHÉP_XD',
+  DA_CAP_GPXD = 'ĐÃ_CẤP_GIẤY_PHÉP_XD'
+}
+
+export enum CapabilityGrade {
+  HANG_I = 'HẠNG I',
+  HANG_II = 'HẠNG II',
+  HANG_III = 'HẠNG III'
+}
+
 export enum DesignType {
   THIET_KE_CO_SO = 'THIET_KE_CO_SO',
   THIET_KE_BVTC = 'THIET_KE_BVTC'
@@ -172,8 +194,18 @@ export enum ProcurementMethod {
 export enum ContractType {
   TRON_GOI = 'TRON_GOI',
   DON_GIA_CO_DINH = 'DON_GIA_CO_DINH',
-  DON_GIA_DIEU_CHINH = 'DON_GIA_DIEU_CHINH'
+  DON_GIA_DIEU_CHINH = 'DON_GIA_DIEU_CHINH',
+  THEO_THOI_GIAN = 'THEO_THOI_GIAN',
+  HOP_DONG_KET_HOP = 'HOP_DONG_KET_HOP',
+  HOP_DONG_EPC = 'HOP_DONG_EPC'
 }
+
+export const CONTRACT_TEMPLATES_210 = [
+  { code: 'MAU_01_TU_VAN_210', name: 'Mẫu 01/NĐ-210: Hợp đồng Tư vấn Xây dựng (Khảo sát, Thiết kế, Giám sát)', defaultAdvanceMaxPct: 30, defaultRetentionPct: 5 },
+  { code: 'MAU_02_THI_CONG_210', name: 'Mẫu 02/NĐ-210: Hợp đồng Thi công Xây dựng Công trình (QĐ 1040/BXD)', defaultAdvanceMaxPct: 30, defaultRetentionPct: 5 },
+  { code: 'MAU_03_EPC_210', name: 'Mẫu 03/NĐ-210: Hợp đồng Tổng thầu Thiết kế - Mua sắm - Thi công (EPC)', defaultAdvanceMaxPct: 40, defaultRetentionPct: 5 },
+  { code: 'MAU_04_THIET_BI_210', name: 'Mẫu 04/NĐ-210: Hợp đồng Cung cấp & Lắp đặt Thiết bị Công nghệ', defaultAdvanceMaxPct: 35, defaultRetentionPct: 5 }
+] as const;
 
 export enum GpmbStatus {
   CHO_KIEM_DEM = 'CHỜ_KIỂM_ĐẾM',

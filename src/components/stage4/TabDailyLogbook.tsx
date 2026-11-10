@@ -1,8 +1,9 @@
-import React, { useState } from 'react';
-import { ProjectData, ConstructionWorkRecord, ConsultingProductRecord } from '../../pms/T2_Services';
+import React, { useState, useEffect } from 'react';
+import { ProjectData, ConstructionWorkRecord, ConsultingProductRecord, MaterialSubmittalRecord, ELogbookItem } from '../../pms/T2_Services';
+import { PmsHandlers } from '../../pms/T3_Handlers';
 import { formatVND, safeNumber, generateExcelTemplate } from '../../pms/T1_Utils';
 import ExcelDragDropUploader from '../ExcelDragDropUploader';
-import { HardHat, MapPin, FileCheck, Calendar, Download, Upload, PlusCircle, Pencil, Trash2, Check, X, Building2, Camera } from 'lucide-react';
+import { HardHat, MapPin, FileCheck, Calendar, Download, Upload, PlusCircle, Pencil, Trash2, Check, X, Building2, Camera, ShieldCheck, Leaf, AlertTriangle } from 'lucide-react';
 import { toast } from 'sonner';
 
 interface TabDailyLogbookProps {
@@ -16,12 +17,112 @@ export default function TabDailyLogbook({ project, selectedPackageId, onRefreshD
   const [isExcelModalOpen, setIsExcelModalOpen] = useState<boolean>(false);
   const [excelSchemaType, setExcelSchemaType] = useState<'CONSULTING' | 'BOQ'>('BOQ');
 
-  // Daily E-Logbook input
+  // Daily E-Logbook input (NĐ 207/2026 & TT 41/2026/TT-BXD)
   const [logDate, setLogDate] = useState<string>(new Date().toISOString().split('T')[0]);
   const [logWeather, setLogWeather] = useState<string>('Nắng đẹp, nhiệt độ 32°C');
   const [logWorkers, setLogWorkers] = useState<number>(120);
   const [logMachines, setLogMachines] = useState<string>('02 Máy đào, 01 Cẩu dầm 50T, 04 Xe tải');
   const [logVolume, setLogVolume] = useState<string>('Thi công đổ bê tông 250m3 dầm cầu đợt 2');
+  const [contractorSigner, setContractorSigner] = useState<string>('KS. Lê Hoàng Nam (Chỉ huy trưởng - CCHN Hạng I)');
+  const [supervisorSigner, setSupervisorSigner] = useState<string>('KS. Trần Quốc Tuấn (TVGS Trưởng - CCHN Hạng I)');
+  const [safetyChecklistPassed, setSafetyChecklistPassed] = useState<boolean>(true);
+  const [eLogs, setELogs] = useState<ELogbookItem[]>(project.NHAT_KY_THI_CONG || []);
+
+  // Material Submittals & Conformity QC (NĐ 209/2026/NĐ-CP)
+  const [materials, setMaterials] = useState<MaterialSubmittalRecord[]>(
+    project.MATERIAL_SUBMITTALS_GDA4 || [
+      {
+        materialId: 'VL-2026-01',
+        packageId: 'GT-XL-01',
+        materialName: 'Thép thanh vằn D25 CB400-V Hòa Phát',
+        batchCode: 'LÔ-HP-2026-08',
+        originCoCq: 'CO/CQ Nhà máy Thép Hòa Phát Dung Quất',
+        qcvnCertNo: 'QCVN 07:2026/BXD - Viện KHCN XD (IBST)',
+        testLabName: 'LAS-XD 102',
+        isGreenMaterial: true,
+        approvalDate: '2026-05-18',
+        status: 'ĐẠT_NGHIỆM_THU_ĐẦU_VÀO'
+      },
+      {
+        materialId: 'VL-2026-02',
+        packageId: 'GT-XL-01',
+        materialName: 'Bê tông thương phẩm M400 phụ gia khoáng xỉ lò cao (VLXD Xanh)',
+        batchCode: 'LÔ-BT-2026-15',
+        originCoCq: 'Trạm trộn Bê tông Chèm - CO/CQ đầy đủ',
+        qcvnCertNo: 'QCVN 16:2026/BXD - Chứng nhận Hợp quy',
+        testLabName: 'LAS-XD 102',
+        isGreenMaterial: true,
+        approvalDate: '2026-05-19',
+        status: 'ĐẠT_NGHIỆM_THU_ĐẦU_VÀO'
+      }
+    ]
+  );
+  const [newMatName, setNewMatName] = useState<string>('');
+  const [newMatBatch, setNewMatBatch] = useState<string>('LÔ-2026-NEW');
+  const [newMatQcvn, setNewMatQcvn] = useState<string>('QCVN 16:2026/BXD - Đạt Hợp quy');
+  const [newMatIsGreen, setNewMatIsGreen] = useState<boolean>(true);
+
+  useEffect(() => {
+    setELogs(project.NHAT_KY_THI_CONG || []);
+    if (project.MATERIAL_SUBMITTALS_GDA4 && project.MATERIAL_SUBMITTALS_GDA4.length > 0) {
+      setMaterials(project.MATERIAL_SUBMITTALS_GDA4);
+    }
+  }, [project]);
+
+  const handleSaveELogbookEntry = () => {
+    if (!safetyChecklistPassed) {
+      toast.error('CẢNH BÁO AN TOÀN (NĐ 207/2026): Chưa đạt Checklist An toàn lao động & Giàn giáo hiện trường! Không thể ký số Nhật ký.');
+      return;
+    }
+    const newLog: ELogbookItem = {
+      LOG_ID: `NK-${Date.now().toString().slice(-4)}`,
+      PROJECT_ID: project.PROJECT_ID,
+      NGAY_GHI: logDate,
+      THOI_TIET: logWeather,
+      NHAN_CONG_SO_LUONG: safeNumber(logWorkers),
+      MAY_THI_CONG: logMachines,
+      NOI_DUNG_CONG_VIEC: logVolume,
+      GPS_COORDINATES: '20.8467° N, 106.6838° E',
+      DA_KY_SO_SMART_CA: true,
+      CONTRACTOR_SIGNER: contractorSigner,
+      SUPERVISOR_SIGNER: supervisorSigner,
+      SAFETY_CHECKLIST_PASSED: safetyChecklistPassed
+    };
+    const updatedLogs = [newLog, ...eLogs];
+    setELogs(updatedLogs);
+    const res = PmsHandlers.stage4ELogbookApi(project.PROJECT_ID, updatedLogs);
+    if (res.success) {
+      toast.success(res.message);
+      onRefreshData();
+    }
+  };
+
+  const handleAddMaterialSubmittal = () => {
+    if (!newMatName.trim()) {
+      toast.error('Vui lòng nhập tên Vật liệu xây dựng cần trình duyệt đầu vào!');
+      return;
+    }
+    const newMat: MaterialSubmittalRecord = {
+      materialId: `VL-${Date.now().toString().slice(-4)}`,
+      packageId: selectedPackageId === 'ALL' ? 'GT-XL-01' : selectedPackageId,
+      materialName: newMatName.trim(),
+      batchCode: newMatBatch,
+      originCoCq: 'Đầy đủ CO/CQ xuất xưởng',
+      qcvnCertNo: newMatQcvn,
+      testLabName: 'LAS-XD 102',
+      isGreenMaterial: newMatIsGreen,
+      approvalDate: new Date().toISOString().split('T')[0],
+      status: 'ĐẠT_NGHIỆM_THU_ĐẦU_VÀO'
+    };
+    const updatedMats = [newMat, ...materials];
+    setMaterials(updatedMats);
+    const res = PmsHandlers.stage4MaterialSubmittalsApi(project.PROJECT_ID, updatedMats);
+    if (res.success) {
+      toast.success(res.message);
+      setNewMatName('');
+      onRefreshData();
+    }
+  };
 
   // Construction Works state
   const [constructionWorks, setConstructionWorks] = useState<ConstructionWorkRecord[]>(
@@ -67,6 +168,11 @@ export default function TabDailyLogbook({ project, selectedPackageId, onRefreshD
   };
 
   const handleAddNewWorkRow = () => {
+    const approvedMaterials = materials.filter(m => m.status === 'ĐẠT_NGHIỆM_THU_ĐẦU_VÀO');
+    if (approvedMaterials.length === 0) {
+      toast.error('CHỐT CHẶN NĐ 209/2026: Chưa có Lô vật liệu xây dựng nào ĐẠT nghiệm thu đầu vào (CO/CQ & Hợp quy QCVN)! Không được phép nghiệm thu công việc xây dựng.');
+      return;
+    }
     const newId = `NT-${Date.now().toString().slice(-4)}`;
     const newWork: ConstructionWorkRecord = {
       workId: newId,
@@ -83,7 +189,7 @@ export default function TabDailyLogbook({ project, selectedPackageId, onRefreshD
     const updated = [...constructionWorks, newWork];
     setConstructionWorks(updated);
     handleEditWork(newWork);
-    toast.info(`Đã thêm mốc bóc tách mới. Hãy chỉnh sửa thông tin.`);
+    toast.info(`Đã thêm mốc bóc tách mới (Đã đối chiếu lô vật liệu đạt chuẩn NĐ 209/2026).`);
   };
 
   const isAllPackages = selectedPackageId === 'ALL' || selectedPackageId === 'ALL_PACKAGES';
@@ -93,12 +199,17 @@ export default function TabDailyLogbook({ project, selectedPackageId, onRefreshD
 
   return (
     <div className="space-y-6">
-      {/* E-Logbook GPS Form */}
+      {/* E-Logbook GPS Form (NĐ 207/2026 & TT 41/2026/TT-BXD) */}
       <div className="bg-white p-6 rounded-2xl border border-slate-200 shadow-sm space-y-4">
-        <h3 className="text-base font-bold text-slate-900 flex items-center gap-2 border-b border-slate-100 pb-3">
-          <HardHat className="w-5 h-5 text-blue-600" />
-          NHẬT KÝ THI CÔNG ĐIỆN TỬ HIỆN TRƯỜNG (KÝ SỐ SMARTCA & GPS)
-        </h3>
+        <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-2 border-b border-slate-100 pb-3">
+          <h3 className="text-base font-bold text-slate-900 flex items-center gap-2">
+            <HardHat className="w-5 h-5 text-blue-600" />
+            NHẬT KÝ THI CÔNG ĐIỆN TỬ HIỆN TRƯỜNG (KÝ SỐ KÉP SMARTCA & GPS - NĐ 207/2026/NĐ-CP)
+          </h3>
+          <span className="bg-blue-50 text-blue-800 text-[11px] font-bold px-3 py-1 rounded-full border border-blue-200">
+            Đã lưu: {eLogs.length} bản ghi Nhật ký điện tử
+          </span>
+        </div>
 
         <div className="grid grid-cols-1 sm:grid-cols-4 gap-4 text-xs font-medium">
           <div>
@@ -124,6 +235,39 @@ export default function TabDailyLogbook({ project, selectedPackageId, onRefreshD
           <textarea rows={2} value={logVolume} onChange={e => setLogVolume(e.target.value)} className="w-full px-3 py-2 border rounded-xl bg-slate-50 text-xs" />
         </div>
 
+        {/* Dual Digital Signatures & Safety Checklist per NĐ 207/2026 */}
+        <div className="grid grid-cols-1 sm:grid-cols-3 gap-3 bg-blue-50/50 p-3.5 rounded-xl border border-blue-200 text-xs">
+          <div>
+            <label className="block font-bold text-slate-700 mb-1">Chữ Ký Số 1: Chỉ Huy Trưởng Nhà Thầu</label>
+            <input
+              type="text"
+              value={contractorSigner}
+              onChange={e => setContractorSigner(e.target.value)}
+              className="w-full px-2.5 py-1.5 border rounded-lg bg-white font-semibold"
+            />
+          </div>
+          <div>
+            <label className="block font-bold text-slate-700 mb-1">Chữ Ký Số 2: Tư Vấn Giám Sát Trưởng</label>
+            <input
+              type="text"
+              value={supervisorSigner}
+              onChange={e => setSupervisorSigner(e.target.value)}
+              className="w-full px-2.5 py-1.5 border rounded-lg bg-white font-semibold"
+            />
+          </div>
+          <div className="flex items-center pt-4">
+            <label className="flex items-center gap-2 cursor-pointer font-bold text-emerald-900">
+              <input
+                type="checkbox"
+                checked={safetyChecklistPassed}
+                onChange={e => setSafetyChecklistPassed(e.target.checked)}
+                className="w-4 h-4 accent-emerald-600 rounded"
+              />
+              <span>Đạt Checklist ATLĐ, Giàn giáo & Thiết bị nâng (NĐ 207/2026)</span>
+            </label>
+          </div>
+        </div>
+
         {/* GPS Image attachment simulation */}
         <div className="bg-slate-50 p-3 rounded-xl border border-slate-200 flex items-center justify-between text-xs">
           <div className="flex items-center gap-2 text-slate-600 font-semibold">
@@ -131,7 +275,7 @@ export default function TabDailyLogbook({ project, selectedPackageId, onRefreshD
             <span>Ảnh chụp hiện trường GPS (Định vị 20.8467° N, 106.6838° E)</span>
           </div>
           <span className="bg-emerald-100 text-emerald-800 font-bold px-2 py-0.5 rounded text-[10px]">
-            Đã gắn Geo-Tagting GPS
+            Đã gắn Geo-Tagging GPS
           </span>
         </div>
 
@@ -140,11 +284,142 @@ export default function TabDailyLogbook({ project, selectedPackageId, onRefreshD
             <MapPin className="w-4 h-4 text-emerald-600" /> Vị trí GPS: 20.8467° N, 106.6838° E (Xác thực hiện trường)
           </span>
           <button
-            onClick={() => toast.success('Đã lưu nhật ký thi công điện tử và xác thực Ký số SmartCA!')}
+            onClick={handleSaveELogbookEntry}
             className="bg-blue-600 hover:bg-blue-700 text-white font-bold px-5 py-2 rounded-xl transition-all shadow-sm flex items-center gap-1.5"
           >
-            <FileCheck className="w-4 h-4" /> Lưu Nhật Ký Điện Tử
+            <FileCheck className="w-4 h-4" /> Ký Số Kép & Lưu Nhật Ký Điện Tử
           </button>
+        </div>
+
+        {/* Saved E-Logbook Records */}
+        {eLogs.length > 0 && (
+          <div className="pt-3 border-t border-slate-100 space-y-2">
+            <div className="text-xs font-bold text-slate-700 uppercase">Lịch sử Nhật ký điện tử đã ký số kép (TT 41/2026/TT-BXD):</div>
+            <div className="grid grid-cols-1 md:grid-cols-2 gap-2.5">
+              {eLogs.slice(0, 4).map(log => (
+                <div key={log.LOG_ID} className="p-3 rounded-xl bg-slate-50 border border-slate-200 text-xs space-y-1">
+                  <div className="flex justify-between items-center">
+                    <span className="font-mono font-bold text-blue-700">[{log.LOG_ID}] Ngày {log.NGAY_GHI}</span>
+                    <span className="bg-emerald-100 text-emerald-800 text-[10px] font-bold px-2 py-0.5 rounded">
+                      Ký số Kép SmartCA
+                    </span>
+                  </div>
+                  <div className="font-semibold text-slate-900">{log.NOI_DUNG_CONG_VIEC}</div>
+                  <div className="text-[11px] text-slate-600">
+                    CHT: {log.CONTRACTOR_SIGNER || 'Đã ký'} | TVGS: {log.SUPERVISOR_SIGNER || 'Đã ký'}
+                  </div>
+                </div>
+              ))}
+            </div>
+          </div>
+        )}
+      </div>
+
+      {/* NĐ 209/2026/NĐ-CP: Material Submittals & Conformity QC Section */}
+      <div className="bg-white p-6 rounded-2xl border border-slate-200 shadow-sm space-y-4">
+        <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-2 border-b border-slate-100 pb-3">
+          <div>
+            <h3 className="text-base font-bold text-slate-900 flex items-center gap-2">
+              <ShieldCheck className="w-5 h-5 text-emerald-600" />
+              KIỂM SOÁT VẬT LIỆU XÂY DỰNG ĐẦU VÀO: CO/CQ, HỢP QUY QCVN & VLXD XANH (NĐ 209/2026/NĐ-CP)
+            </h3>
+            <p className="text-xs text-slate-500">
+              Bắt buộc nghiệm thu vật liệu đầu vào đạt Hợp quy QCVN & thí nghiệm LAS-XD trước khi đưa vào thi công nghiệm thu
+            </p>
+          </div>
+          <span className="bg-emerald-50 text-emerald-800 text-xs font-bold px-3 py-1 rounded-full border border-emerald-200 flex items-center gap-1">
+            <Leaf className="w-3.5 h-3.5 text-emerald-600" /> VLXD Xanh: {materials.filter(m => m.isGreenMaterial).length}/{materials.length} lô
+          </span>
+        </div>
+
+        {/* Add Material Batch Form */}
+        <div className="grid grid-cols-1 sm:grid-cols-5 gap-3 bg-emerald-50/40 p-3.5 rounded-xl border border-emerald-200 text-xs">
+          <div className="sm:col-span-2">
+            <label className="block font-bold text-slate-700 mb-1">Tên Vật Liệu / Cấu Kiện Xây Dựng</label>
+            <input
+              type="text"
+              value={newMatName}
+              onChange={e => setNewMatName(e.target.value)}
+              placeholder="VD: Xi măng PCB40 Bỉm Sơn / Thép D20..."
+              className="w-full px-2.5 py-1.5 border rounded-lg bg-white font-semibold"
+            />
+          </div>
+          <div>
+            <label className="block font-bold text-slate-700 mb-1">Số Lô (Batch Code)</label>
+            <input
+              type="text"
+              value={newMatBatch}
+              onChange={e => setNewMatBatch(e.target.value)}
+              className="w-full px-2.5 py-1.5 border rounded-lg bg-white font-mono"
+            />
+          </div>
+          <div>
+            <label className="block font-bold text-slate-700 mb-1">Chứng Nhận Hợp Quy QCVN</label>
+            <input
+              type="text"
+              value={newMatQcvn}
+              onChange={e => setNewMatQcvn(e.target.value)}
+              className="w-full px-2.5 py-1.5 border rounded-lg bg-white"
+            />
+          </div>
+          <div className="flex flex-col justify-between">
+            <label className="flex items-center gap-1.5 font-bold text-emerald-900 cursor-pointer mt-1">
+              <input
+                type="checkbox"
+                checked={newMatIsGreen}
+                onChange={e => setNewMatIsGreen(e.target.checked)}
+                className="w-3.5 h-3.5 accent-emerald-600"
+              />
+              <span>VLXD Xanh / Tiết kiệm NL</span>
+            </label>
+            <button
+              type="button"
+              onClick={handleAddMaterialSubmittal}
+              className="bg-emerald-600 hover:bg-emerald-700 text-white font-bold py-1.5 px-3 rounded-lg transition-all"
+            >
+              + Duyệt Lô VLXD
+            </button>
+          </div>
+        </div>
+
+        {/* Material Submittals Table */}
+        <div className="overflow-x-auto border border-slate-200 rounded-xl">
+          <table className="w-full text-xs text-left text-slate-600">
+            <thead className="bg-slate-100 text-slate-700 uppercase font-bold border-b border-slate-200">
+              <tr>
+                <th className="px-3 py-2">Mã Lô</th>
+                <th className="px-3 py-2">Tên Vật Liệu Xây Dựng</th>
+                <th className="px-3 py-2">Xuất Xứ CO/CQ</th>
+                <th className="px-3 py-2">Chứng Nhận Hợp Quy (NĐ 209/2026)</th>
+                <th className="px-3 py-2 text-center">VLXD Xanh</th>
+                <th className="px-3 py-2 text-center">Trạng Thái QC</th>
+              </tr>
+            </thead>
+            <tbody className="divide-y divide-slate-100 font-medium">
+              {materials.map(mat => (
+                <tr key={mat.materialId} className="hover:bg-slate-50">
+                  <td className="px-3 py-2 font-mono font-bold text-blue-700">{mat.batchCode}</td>
+                  <td className="px-3 py-2 font-bold text-slate-900">{mat.materialName}</td>
+                  <td className="px-3 py-2">{mat.originCoCq}</td>
+                  <td className="px-3 py-2 font-mono text-slate-700">{mat.qcvnCertNo} ({mat.testLabName})</td>
+                  <td className="px-3 py-2 text-center">
+                    {mat.isGreenMaterial ? (
+                      <span className="bg-emerald-100 text-emerald-800 px-2 py-0.5 rounded-full text-[10px] font-bold">
+                        Đạt VLXD Xanh
+                      </span>
+                    ) : (
+                      <span className="text-slate-400">Tiêu chuẩn</span>
+                    )}
+                  </td>
+                  <td className="px-3 py-2 text-center">
+                    <span className="bg-blue-100 text-blue-800 px-2.5 py-0.5 rounded-full text-[10px] font-bold">
+                      {mat.status}
+                    </span>
+                  </td>
+                </tr>
+              ))}
+            </tbody>
+          </table>
         </div>
       </div>
 
