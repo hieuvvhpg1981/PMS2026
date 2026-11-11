@@ -79,7 +79,7 @@ export default function Stage1DocumentUploader({
 
     const fileSizeMB = Number((fileInput.size / (1024 * 1024)).toFixed(2));
     if (fileSizeMB > PMS_CONFIG.MAX_FILE_SIZE_MB) {
-      toast.error(`Kích thước file (${fileSizeMB} MB) vượt quá giới hạn tối đa 50MB!`);
+      toast.error(`Kích thước file (${fileSizeMB} MB) vượt quá giới hạn tối đa ${PMS_CONFIG.MAX_FILE_SIZE_MB}MB/tệp!`);
       return;
     }
 
@@ -155,10 +155,11 @@ export default function Stage1DocumentUploader({
 
         {/* File Drag Drop Input */}
         <div>
-          <label className="block text-sm font-medium text-slate-700 mb-1">Tệp tài liệu hồ sơ (PDF, XLSX, DOCX, ZIP ≤ 50MB) *</label>
+          <label className="block text-sm font-medium text-slate-700 mb-1">Tệp tài liệu hồ sơ (PDF, XLSX, DOCX, DWG, ZIP, BIM/IFC ≤ {PMS_CONFIG.MAX_FILE_SIZE_MB}MB) *</label>
           <div className="border-2 border-dashed border-slate-300 hover:border-indigo-500 rounded-xl p-4 text-center transition-all bg-slate-50">
             <input
               type="file"
+              accept=".pdf,.xlsx,.xls,.docx,.doc,.dwg,.zip,.ifc,.rvt"
               onChange={e => setFileInput(e.target.files?.[0] || null)}
               className="hidden"
               id="stage1-file-input"
@@ -170,7 +171,7 @@ export default function Stage1DocumentUploader({
               ) : (
                 <>
                   <span className="font-bold text-slate-700">Bấm để chọn tệp hoặc kéo-thả file vào đây</span>
-                  <span className="text-[11px] text-slate-400">Hỗ trợ PDF, Excel, Word, CAD, ZIP mã hóa SmartCA</span>
+                  <span className="text-[11px] text-slate-400">Hỗ trợ PDF, Excel, Word, CAD (.dwg), BIM (.ifc/.rvt), ZIP mã hóa SmartCA (Tối đa {PMS_CONFIG.MAX_FILE_SIZE_MB}MB/tệp)</span>
                 </>
               )}
             </label>

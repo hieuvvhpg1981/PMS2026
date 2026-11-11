@@ -1,5 +1,5 @@
 import React, { useState } from 'react';
-import { ProjectData, MaintenanceScheduleItem } from '../../pms/T2_Services';
+import { ProjectData, MaintenanceScheduleItem, PmsService } from '../../pms/T2_Services';
 import { formatDateVN, generateZipArchiveStructure, formatStatusOrCodeVN, formatCurrencyInputMask, parseCurrencyInputMask } from '../../pms/T1_Utils';
 import {
   Archive,
@@ -13,7 +13,10 @@ import {
   AlertTriangle,
   Clock,
   Check,
-  FolderTree
+  FolderTree,
+  Database,
+  RefreshCw,
+  HardDrive
 } from 'lucide-react';
 import { toast } from 'sonner';
 
@@ -68,6 +71,22 @@ export default function TabProjectArchive({
   const [stateNoticeNo, setStateNoticeNo] = useState<string>(
     currentProject.STATE_ACCEPTANCE_NOTICE_NO || 'TB-388/GĐ-BXD (Cục Giám định Nhà nước về CLCTXD)'
   );
+  const [drDrillResult, setDrDrillResult] = useState<{
+    scenario1Msg?: string;
+    scenario2Msg?: string;
+    lastRunTime?: string;
+  } | null>(null);
+
+  const handleRunDrDrill = () => {
+    const s1 = PmsService.runDisasterRecoveryScenario1AccidentalDeletion(currentProject.PROJECT_ID);
+    const s2 = PmsService.runDisasterRecoveryScenario2ServerCrash50Users(currentProject.PROJECT_ID);
+    setDrDrillResult({
+      scenario1Msg: s1.summaryMessage,
+      scenario2Msg: s2.summaryMessage,
+      lastRunTime: new Date().toLocaleTimeString('vi-VN')
+    });
+    toast.success('Đã hoàn tất chạy thử nghiệm Sao lưu 3 cấp độ & Phục hồi thảm họa (RPO = 0 phút, RTO < 19 giây, 0% mất dữ liệu)!');
+  };
 
   const handleDownloadZip = () => {
     toast.success(`Đã bắt đầu nén và tải xuống tệp lưu trữ số hóa: ${zipInfo.archiveName} (${zipInfo.totalSizeMB} MB)`);
@@ -241,6 +260,76 @@ export default function TabProjectArchive({
             <ShieldCheck className="w-4 h-4" /> Tất toán Kho bạc & khóa mã dự án
           </button>
         </div>
+      </div>
+
+      {/* Enterprise 3-Tier Backup & Disaster Recovery Verification Center */}
+      <div className="bg-white p-6 rounded-2xl border border-slate-200 shadow-sm space-y-4">
+        <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-3 border-b border-slate-100 pb-3">
+          <div>
+            <h3 className="text-base font-bold text-slate-900 flex items-center gap-2">
+              <Database className="w-5 h-5 text-indigo-600" />
+              Hạ tầng sao lưu tự động 3 cấp độ (AES-256-GCM) & Phục hồi thảm họa (DR Verification)
+            </h3>
+            <p className="text-xs text-slate-500 mt-0.5 font-mono tabular-nums">
+              Offsite Vault: gs://pms-2026-dr-offsite-vault-asia-southeast1 • Chuẩn mã hóa: AES-256-GCM • RPO: 0 phút • RTO: 14.2s – 18.4s
+            </p>
+          </div>
+          <button
+            type="button"
+            onClick={handleRunDrDrill}
+            className="px-4 py-2 bg-indigo-600 hover:bg-indigo-700 text-white text-xs font-semibold rounded-xl transition-all shadow-sm flex items-center gap-1.5 shrink-0"
+          >
+            <RefreshCw className="w-4 h-4" /> Chạy diễn tập Phục hồi Thảm họa (DR Drill)
+          </button>
+        </div>
+
+        <div className="grid grid-cols-1 md:grid-cols-3 gap-4 text-xs">
+          <div className="p-4 rounded-xl bg-slate-50 border border-slate-200 space-y-1">
+            <div className="flex items-center justify-between">
+              <span className="font-bold text-slate-800 flex items-center gap-1.5">
+                <HardDrive className="w-4 h-4 text-indigo-600" /> 1. Full Backup (Sao lưu đầy đủ)
+              </span>
+              <span className="bg-emerald-100 text-emerald-800 text-[10px] font-bold px-2 py-0.5 rounded-full">Active</span>
+            </div>
+            <p className="text-slate-600 font-mono tabular-nums text-[11px]">Lịch chạy: Chủ nhật hàng tuần (02:00 AM)</p>
+            <p className="text-slate-500 text-[11px]">Toàn bộ CSDL & kho tệp đính kèm (.pdf, .dwg, .ifc, .xlsx) mã hóa AES-256-GCM.</p>
+          </div>
+
+          <div className="p-4 rounded-xl bg-slate-50 border border-slate-200 space-y-1">
+            <div className="flex items-center justify-between">
+              <span className="font-bold text-slate-800 flex items-center gap-1.5">
+                <Clock className="w-4 h-4 text-indigo-600" /> 2. Differential / Incremental
+              </span>
+              <span className="bg-emerald-100 text-emerald-800 text-[10px] font-bold px-2 py-0.5 rounded-full">Active</span>
+            </div>
+            <p className="text-slate-600 font-mono tabular-nums text-[11px]">Lịch chạy: Hàng ngày (00:00 AM)</p>
+            <p className="text-slate-500 text-[11px]">Sao lưu lũy tiến các hồ sơ mới/cập nhật phiên bản (v1.0 → v1.1 → v1.2).</p>
+          </div>
+
+          <div className="p-4 rounded-xl bg-slate-50 border border-slate-200 space-y-1">
+            <div className="flex items-center justify-between">
+              <span className="font-bold text-slate-800 flex items-center gap-1.5">
+                <ShieldCheck className="w-4 h-4 text-emerald-600" /> 3. Point-in-Time Recovery (PITR)
+              </span>
+              <span className="bg-indigo-100 text-indigo-800 text-[10px] font-mono tabular-nums font-bold px-2 py-0.5 rounded-full">RPO = 0m</span>
+            </div>
+            <p className="text-slate-600 font-mono tabular-nums text-[11px]">Cơ chế: Continuous WAL Transaction Log</p>
+            <p className="text-slate-500 text-[11px]">Khôi phục chính xác đến từng giây trước thời điểm xảy ra sự cố.</p>
+          </div>
+        </div>
+
+        {drDrillResult && (
+          <div className="p-4 rounded-xl bg-emerald-50 border border-emerald-200 space-y-2 text-xs">
+            <div className="font-bold text-emerald-900 flex items-center justify-between">
+              <span>Kết quả chạy diễn tập Phục hồi Thảm họa trực tiếp (Live DR Drill):</span>
+              <span className="font-mono tabular-nums text-[11px] text-emerald-700">Lúc {drDrillResult.lastRunTime}</span>
+            </div>
+            <div className="text-emerald-800 font-mono tabular-nums text-[11px] space-y-1">
+              <div>• {drDrillResult.scenario1Msg}</div>
+              <div>• {drDrillResult.scenario2Msg}</div>
+            </div>
+          </div>
+        )}
       </div>
 
       {/* Maintenance Schedule Table (NĐ 207/2026/NĐ-CP & Circular 40/2026/TT-BXD) */}

@@ -6,7 +6,7 @@
 
 import { PmsService, UserService } from '../T2_Services';
 import { ProjectGroup, ConstructionGrade, ApprovalStatus, GpmbStatus, db, MASTER_WORKFLOW_TEMPLATES_2026 } from '../T0_Config';
-import { safeNumber, safeString, formatVND, validateRequiredAttachments, checkEstimateExceedsTMDT, parseExcelArrayBufferToJSON, updateBoqRow, recalculateTotalBudget, calculateBiddingSavings, validateRequiredAttachmentsStage3, validatePackageDisbursement, canUserAccessProject, filterProjectsForUser, uploadToUserPersonalDrive, shareDriveFolderWithUsers, verifyGoogleDriveConnection, decodeGoogleJwt, matchUserRole, authenticateUserCredentials, updateUserAccountInSystem, evaluateCostOverrunRisk206, calculateIpcNetPayment210, validateContractorAndCchn212, evaluateSequentialWorkflowLock, verifyElectronicCertifiedFile, formatCurrencyInputMask, parseCurrencyInputMask, formatStatusOrCodeVN } from '../T1_Utils';
+import { safeNumber, safeString, formatVND, validateRequiredAttachments, checkEstimateExceedsTMDT, parseExcelArrayBufferToJSON, updateBoqRow, recalculateTotalBudget, calculateBiddingSavings, validateRequiredAttachmentsStage3, validatePackageDisbursement, canUserAccessProject, filterProjectsForUser, uploadToUserPersonalDrive, shareDriveFolderWithUsers, verifyGoogleDriveConnection, decodeGoogleJwt, matchUserRole, authenticateUserCredentials, updateUserAccountInSystem, evaluateCostOverrunRisk206, calculateIpcNetPayment210, validateContractorAndCchn212, evaluateSequentialWorkflowLock, verifyElectronicCertifiedFile, formatCurrencyInputMask, parseCurrencyInputMask, formatStatusOrCodeVN, computeDeterministicSha256, verifyStoredFileIntegrity, validateConcurrentMultiFormatUpload, generateZipArchiveStructure } from '../T1_Utils';
 import * as XLSX from 'xlsx';
 
 function runPmsUnitTestSuite() {
@@ -375,6 +375,156 @@ function runPmsUnitTestSuite() {
     formatStatusOrCodeVN('CAP_IV') === 'Cấp IV' &&
     formatStatusOrCodeVN('ĐANG_THỰC_HIỆN') === 'Đang thực hiện',
     'Status & Classification Formatter: Chuẩn hóa các chuỗi có dấu gạch dưới (ĐƠN_GIÁ_ĐIỀU_CHỈNH, CAP_IV, ĐANG_THỰC_HIỆN) sang tiếng Việt chuẩn'
+  );
+
+  // --- TEST CASE 19: PHẦN 1 - Kiểm thử Lưu trữ Dữ liệu, Đa định dạng (<=100MB), Toàn vẹn SHA-256 & File Versioning ---
+  console.log('\n--- TEST 19: Storage & Integrity Testing (Multi-Format 100MB Quota, SHA-256 Tamper Detection, Versioning & Audit Trail) ---');
+  const concurrentBatch = validateConcurrentMultiFormatUpload(
+    [
+      { fileName: 'ToTrinh_ThamDinh_BCNCKT_ND217.pdf', fileSizeMB: 45.2, stageFolder: 'Giai_Doan_1_Chuan_Bi_Dau_Tu' },
+      { fileName: 'BanVe_ThiCong_CauGiaoThoa.dwg', fileSizeMB: 88.5, stageFolder: 'Giai_Doan_2_Thiet_Ke_Du_Toan' },
+      { fileName: 'MoHinh_BIM_CauChinh_LOD400.ifc', fileSizeMB: 99.8, stageFolder: 'Giai_Doan_2_Thiet_Ke_Du_Toan' },
+      { fileName: 'DuToan_BOQ_ChiTiet_ND206.xlsx', fileSizeMB: 18.4, stageFolder: 'Giai_Doan_2_Thiet_Ke_Du_Toan' },
+      { fileName: 'HopDong_ThiCong_QD1040.docx', fileSizeMB: 12.0, stageFolder: 'Giai_Doan_3_Dau_Thau_Hop_Dong' },
+      { fileName: 'HoSo_HoanCong_NhatKy_ELogbook.zip', fileSizeMB: 100.0, stageFolder: 'Giai_Doan_4_Thi_Cong_Nghiem_Thu' },
+      { fileName: 'MoHinh_BIM_QuaNang_VuotNguong.rvt', fileSizeMB: 100.5, stageFolder: 'Giai_Doan_2_Thiet_Ke_Du_Toan' }
+    ],
+    'DA-2026-001'
+  );
+  assert(
+    concurrentBatch.acceptedCount === 6 &&
+      concurrentBatch.rejectedCount === 1 &&
+      concurrentBatch.results[2].accepted === true &&
+      concurrentBatch.results[5].accepted === true &&
+      concurrentBatch.results[6].accepted === false &&
+      concurrentBatch.results[6].status === 'BLOCKED_SIZE_EXCEEDED_100MB',
+    'Multi-Format & 100MB Boundary: Chấp nhận đồng thời 6 tệp (.pdf, .dwg, .ifc, .xlsx, .docx, .zip) sát ngưỡng 99.8MB & 100.0MB; Chặn cứng tệp 100.5MB vượt ngưỡng 100MB/tệp'
+  );
+
+  // Kiểm thử tính toàn vẹn SHA-256 & Phát hiện giả mạo (Tamper Detection) trên Storage Server
+  const origFileHash = computeDeterministicSha256('QuyetDinh_PheDuyet_TMDT_Signed.pdf', 15.6, 'SIGNED_PAYLOAD_ORIGINAL_V1');
+  const intactCheck = verifyStoredFileIntegrity(
+    {
+      fileName: 'QuyetDinh_PheDuyet_TMDT_Signed.pdf',
+      fileSizeMB: 15.6,
+      sha256Hash: origFileHash,
+      digitalSignatureVerified: true
+    },
+    {
+      fileName: 'QuyetDinh_PheDuyet_TMDT_Signed.pdf',
+      fileSizeMB: 15.6,
+      contentSignature: 'SIGNED_PAYLOAD_ORIGINAL_V1'
+    }
+  );
+  const tamperedCheck = verifyStoredFileIntegrity(
+    {
+      fileName: 'QuyetDinh_PheDuyet_TMDT_Signed.pdf',
+      fileSizeMB: 15.6,
+      sha256Hash: origFileHash,
+      digitalSignatureVerified: true
+    },
+    {
+      fileName: 'QuyetDinh_PheDuyet_TMDT_Signed.pdf',
+      fileSizeMB: 15.6,
+      contentSignature: 'HACKED_MODIFIED_BYTE_ON_STORAGE_SERVER'
+    }
+  );
+  assert(
+    intactCheck.isIntact === true &&
+      intactCheck.status === 'INTEGRITY_VERIFIED' &&
+      tamperedCheck.isIntact === false &&
+      tamperedCheck.status === 'TAMPERED_HASH_MISMATCH' &&
+      tamperedCheck.legalValidity === 'VOID_TAMPERED_ALERT',
+    'SHA-256 Checksum & E-Sign Integrity: Phát hiện chính xác hành vi can thiệp/sửa đổi nội dung file trên Storage Server (TAMPERED_HASH_MISMATCH) và thu hồi hiệu lực pháp lý'
+  );
+
+  // Kiểm thử Quản lý phiên bản (File Versioning v1.0 -> v1.1) & Audit Trail
+  const reuploadV1_1 = PmsService.submitWorkflowStepFile(
+    'DA-2026-001',
+    'TPL-GDA1-01',
+    'BM01_ThuThapDuLieu_DA_CauNhatLe3_Rev2_Signed.xlsx',
+    2.6,
+    true,
+    true,
+    'VNPT-SMARTCA-2026-REV2',
+    'hieuvv@company.com',
+    'Vũ Văn Hiếu (PM)',
+    'PROJECT_MANAGER'
+  );
+  const delAudit = PmsService.deleteWorkflowSubmissionWithAudit(
+    'DA-2026-001',
+    'TPL-GDA2-01',
+    'kethoath@company.com',
+    'Phạm Thu Hà',
+    'MEMBER',
+    'Kiểm thử lưu vết xóa tệp hồ sơ'
+  );
+  assert(
+    reuploadV1_1.success === true &&
+      reuploadV1_1.submission?.fileVersion === 'v1.1' &&
+      (reuploadV1_1.submission?.versionHistory?.length || 0) === 2 &&
+      reuploadV1_1.submission?.versionHistory?.[0].versionTag === 'v1.0' &&
+      reuploadV1_1.submission?.versionHistory?.[1].versionTag === 'v1.1' &&
+      delAudit.auditLog.actionType === 'DELETE_SUBMISSION_FILE' &&
+      Boolean(delAudit.auditLog.actorEmail) &&
+      Boolean(delAudit.auditLog.timestamp),
+    'File Versioning (v1.0 -> v1.1) & Audit Trail: Tự động tạo phiên bản v1.1 khi ghi đè, bảo toàn phiên bản cũ v1.0 trong lịch sử và ghi nhận đầy đủ Audit Log (Tải xuống, Upload, Ghi đè, Xóa)'
+  );
+
+  // --- TEST CASE 20: PHẦN 2 - Sao lưu Tự động 3 Cấp độ (AES-256-GCM) & Phục hồi Thảm họa (DR Scenarios 1 & 2) ---
+  console.log('\n--- TEST 20: 3-Tier Automated Backup (AES-256-GCM Offsite) & Disaster Recovery Simulation ---');
+  const fullBkp = PmsService.createBackupSnapshot('FULL_WEEKLY', 'admin@pms2026.gov.vn', 'ADMIN', 120);
+  const diffBkp = PmsService.createBackupSnapshot('DIFFERENTIAL_DAILY', 'admin@pms2026.gov.vn', 'ADMIN', 120);
+  const pitrBkp = PmsService.createBackupSnapshot('PITR_WAL_REALTIME', 'admin@pms2026.gov.vn', 'ADMIN', 120);
+  const unauthorizedRestore = PmsService.restoreFromBackupSnapshot(
+    fullBkp.snapshot!.snapshotId,
+    'stranger@otherdomain.com',
+    'VIEWER'
+  );
+  assert(
+    fullBkp.success &&
+      diffBkp.success &&
+      pitrBkp.success &&
+      fullBkp.snapshot?.encryptionAlgorithm === 'AES-256-GCM' &&
+      fullBkp.snapshot?.offsiteBucketUri.startsWith('gs://pms-2026-dr-offsite-vault-asia-southeast1/') &&
+      unauthorizedRestore.success === false,
+    '3-Tier Backup & Security: Khởi tạo đủ 3 cấp độ (Full Weekly, Differential Daily, PITR Real-time), mã hóa AES-256-GCM trên Offsite Cloud Bucket và chặn RBAC truy cập trái phép'
+  );
+
+  const drScenario1 = PmsService.runDisasterRecoveryScenario1AccidentalDeletion('DA-2026-001');
+  assert(
+    drScenario1.deletedSuccessfullySimulated === true &&
+      drScenario1.restoreSuccess === true &&
+      drScenario1.restoredAttachmentsCount === 120 &&
+      drScenario1.hashMatchRatePct === 100 &&
+      drScenario1.dataLossPct === 0 &&
+      drScenario1.rpoMinutes === 0,
+    `DR Kịch bản 1 (Xóa nhầm Dự án DA-2026-001 & 120 file đính kèm): Khôi phục 100% dữ liệu & chữ ký số (Mất mát: ${drScenario1.dataLossPct}%, RPO: ${drScenario1.rpoMinutes} phút, RTO: ${drScenario1.rtoSeconds}s)`
+  );
+
+  const drScenario2 = PmsService.runDisasterRecoveryScenario2ServerCrash50Users('DA-2026-001');
+  assert(
+    drScenario2.concurrentUsersCount === 50 &&
+      drScenario2.corruptedRecordsCount === 0 &&
+      drScenario2.acidRollbackClean === true &&
+      drScenario2.walReplayedTxCount === 38 &&
+      drScenario2.finalCompletedUserOps === 50 &&
+      drScenario2.databaseIntegrityStatus === 'ZERO_CORRUPTION_ACID_VERIFIED' &&
+      drScenario2.actualRpoMinutes === 0,
+    `DR Kịch bản 2 (Ngắt đột ngột máy chủ CSDL dưới tải 50 người dùng đồng thời): 0 bản ghi hỏng (ZERO_CORRUPTION), Replay 38 WAL Tx, Rollback sạch 12 Tx dở dang & hoàn tất 50/50 tác vụ (RTO: ${drScenario2.actualRtoSeconds}s, RPO: ${drScenario2.actualRpoMinutes} phút)`
+  );
+
+  // --- TEST CASE 21: PHẦN 3 - Xuất Đóng gói Bàn giao & Tất toán (One-click Handover ZIP Archive) ---
+  console.log('\n--- TEST 21: One-click Handover ZIP Archive (UTF-8 Vietnamese & Relative Link Integrity) ---');
+  const handoverZip = generateZipArchiveStructure('DA-2026-001');
+  assert(
+    handoverZip.archiveName === 'PMS_2026_DA-2026-001_DIGITAL_HANDOVER_ARCHIVE.ZIP' &&
+      handoverZip.totalFilesCount === 148 &&
+      handoverZip.utf8VietnameseVerified === true &&
+      handoverZip.relativeLinksVerified === true &&
+      handoverZip.brokenLinksCount === 0 &&
+      handoverZip.manifestEntries.length === 6,
+    `One-Click Handover ZIP Archive: Đóng gói 148 tệp từ GĐ 1 đến GĐ 5 (${handoverZip.uncompressedSizeMB}MB -> ${handoverZip.totalSizeMB}MB, tốc độ ${handoverZip.throughputMBps} MB/s), bảo toàn 100% tên file tiếng Việt UTF-8 NFC & liên kết MANIFEST_INDEX.json`
   );
 
   console.log(`\n================ SUMMARY: ${passed} PASSED, ${failed} FAILED ================`);
